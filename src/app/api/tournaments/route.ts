@@ -18,17 +18,34 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const tournament = await request.json();
-    await docClient.send(
-      new PutCommand({
-        TableName: TABLE_NAME,
-        Item: tournament,
-      })
+    const body = await request.json();
+
+    const command = new PutCommand({
+      TableName: TABLE_NAME,
+      Item: {
+        ...body,
+        // Ensure your Partition Key is present
+        TournamentId: body.id || `wpt_${Date.now()}`,
+      },
+    });
+
+    await docClient.send(command);
+    return NextResponse.json({ success: true, message: "Saved successfully!" });
+
+  } catch (error: any) {
+    // 🔴 AMEND THIS LINE RIGHT HERE:
+    // Instead of returning a generic error, we strip open the AWS system error message
+    console.error("DynamoDB Error Caught:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message || "Unknown server error",
+        code: error.code || error.__type || "No error code provided",
+        stack: error.stack // Optional: gives you the exact line number that failed
+      },
+      { status: 500 }
     );
-    return NextResponse.json({ success: true, tournament });
-  } catch (error) {
-    console.error("POST Error:", error);
-    return NextResponse.json({ error: "Failed to create tournament" }, { status: 500 });
   }
 }
 
