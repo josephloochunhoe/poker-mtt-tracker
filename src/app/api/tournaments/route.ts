@@ -55,15 +55,14 @@ export async function PUT(request: Request) {
     const { action, id, ...rest } = body;
 
     if (action === "REBUY") {
-      const { newBullet, lastBulletIndex, bustedAt } = rest;
+      const { bullets } = rest;
       await docClient.send(
         new UpdateCommand({
           TableName: TABLE_NAME,
           Key: { TournamentId: id },
-          UpdateExpression: `SET bullets[${lastBulletIndex}].bustedAt = :bustedAt, bullets = list_append(bullets, :newBullet)`,
+          UpdateExpression: `SET bullets = :bullets`,
           ExpressionAttributeValues: {
-            ":bustedAt": bustedAt,
-            ":newBullet": [newBullet],
+            ":bullets": bullets,
           },
         })
       );

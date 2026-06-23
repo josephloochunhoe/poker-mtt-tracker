@@ -100,12 +100,13 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
             cost: initialBuyIn,
         };
 
+        const updatedBullets = [...tournament.bullets];
+        updatedBullets[lastIndex].bustedAt = now;
+        updatedBullets.push(newBullet);
+
         // Optimistic update
         setTournament((prev) => {
             if (!prev) return prev;
-            const updatedBullets = [...prev.bullets];
-            updatedBullets[lastIndex].bustedAt = now;
-            updatedBullets.push(newBullet);
             return { ...prev, bullets: updatedBullets };
         });
 
@@ -117,9 +118,7 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
                 body: JSON.stringify({
                     action: "REBUY",
                     id: tournament.id,
-                    lastBulletIndex: lastIndex,
-                    bustedAt: now,
-                    newBullet,
+                    bullets: updatedBullets,
                 }),
             });
             if (!res.ok) {
