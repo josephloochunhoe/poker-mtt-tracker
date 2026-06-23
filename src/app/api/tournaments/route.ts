@@ -59,7 +59,7 @@ export async function PUT(request: Request) {
       await docClient.send(
         new UpdateCommand({
           TableName: TABLE_NAME,
-          Key: { id },
+          Key: { TournamentId: id },
           UpdateExpression: `SET bullets[${lastBulletIndex}].bustedAt = :bustedAt, bullets = list_append(bullets, :newBullet)`,
           ExpressionAttributeValues: {
             ":bustedAt": bustedAt,
@@ -73,7 +73,7 @@ export async function PUT(request: Request) {
       await docClient.send(
         new UpdateCommand({
           TableName: TABLE_NAME,
-          Key: { id },
+          Key: { TournamentId: id },
           UpdateExpression:
             "SET #st = :status, finishPosition = :fp, fieldSize = :fs, cashWon = :cw, bountiesWon = :bw, bullets = :bullets",
           ExpressionAttributeNames: {
@@ -93,8 +93,16 @@ export async function PUT(request: Request) {
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-  } catch (error) {
+  } catch (error: any) {
     console.error("PUT Error:", error);
-    return NextResponse.json({ error: "Failed to update tournament" }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: `Failed to update tournament: ${error?.message || "Unknown error"}`,
+        details: error?.message || "Unknown error",
+        code: error?.code || error?.__type || "UnknownCode",
+        stack: error?.stack,
+      },
+      { status: 500 }
+    );
   }
 }

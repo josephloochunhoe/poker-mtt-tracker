@@ -111,7 +111,7 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
 
         // API Call
         try {
-            await fetch("/api/tournaments", {
+            const res = await fetch("/api/tournaments", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -122,6 +122,10 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
                     newBullet,
                 }),
             });
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.error || `Server responded with ${res.status}`);
+            }
         } catch (err) {
             console.error("Failed to append bullet:", err);
         } finally {
@@ -158,7 +162,7 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
         setShowCompleteModal(false);
 
         try {
-            await fetch("/api/tournaments", {
+            const res = await fetch("/api/tournaments", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -172,6 +176,10 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
                     bullets: updatedBullets,
                 }),
             });
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.error || `Server responded with ${res.status}`);
+            }
             if (onCompleted) onCompleted();
         } catch (err) {
             console.error("Failed to complete:", err);
