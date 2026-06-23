@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { docClient, TABLE_NAME } from "@/lib/dynamodb";
-import { ScanCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { ScanCommand, PutCommand, UpdateCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
 
 export async function GET() {
   try {
@@ -100,6 +100,35 @@ export async function PUT(request: Request) {
         details: error?.message || "Unknown error",
         code: error?.code || error?.__type || "UnknownCode",
         stack: error?.stack,
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "Missing tournament id" }, { status: 400 });
+    }
+
+    await docClient.send(
+      new DeleteCommand({
+        TableName: TABLE_NAME,
+        Key: { TournamentId: id },
+      })
+    );
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error("DELETE Error:", error);
+    return NextResponse.json(
+      {
+        error: `Failed to delete tournament: ${error?.message || "Unknown error"}`,
+        code: error?.code || error?.__type || "UnknownCode",
       },
       { status: 500 }
     );

@@ -159,7 +159,7 @@ export default function Dashboard() {
 
                 {/* History Area */}
                 <div className="lg:col-span-2">
-                    <HistoryTable tournaments={tournaments} />
+                    <HistoryTable tournaments={tournaments} onDelete={fetchTournaments} />
                 </div>
             </div>
         </div>
