@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { Tournament } from "./LiveTournament";
-import { ChevronDown, Trash2, Loader2 } from "lucide-react";
+import { getEventFinancials } from "@/lib/analytics";
+import { ChevronDown, Trash2, Loader2, Link2, Briefcase } from "lucide-react";
 
 const TOURNAMENT_TYPES = ["All", "Standard", "PKO", "Mystery Bounty", "Satellite"];
 
@@ -89,12 +90,17 @@ export default function HistoryTable({
                                 </td>
                             </tr>
                         ) : filtered.map((t) => {
-                            const totalInvested = t.bullets.reduce((sum, b) => sum + b.cost, 0);
-                            const totalCashed = (t.cashWon || 0) + (t.bountiesWon || 0);
-                            const profit = totalCashed - totalInvested;
-                            const roi = totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
+                            // For a phased Day 2 entry, step up to the parent Day 1 so the
+                            // buy-in paid on Day 1 is counted and bounty pools are merged.
+                            const fin = getEventFinancials(t, tournaments);
+                            const totalInvested = fin.invested;
+                            const totalCashed = fin.cashed;
+                            const profit = fin.profit;
+                            const roi = fin.roi;
                             const isProfit = profit > 0;
                             const isLoss = profit < 0;
+                            const isDay2 = t.phasedStage === "Day 2";
+                            const isAdvancedDay1 = t.phasedStage === "Day 1" && t.flightStatus === "Advanced";
                             const sym = t.currency === "MYR" ? "RM " : "$";
                             const firstBulletDate = t.bullets.length > 0 ? new Date(t.bullets[0].registeredAt) : null;
                             const firstStart = firstBulletDate ? firstBulletDate.getTime() : null;
@@ -115,8 +121,23 @@ export default function HistoryTable({
                                     <td className="px-6 py-4 whitespace-nowrap text-slate-300">
                                         {new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-white font-medium">
-                                        {t.type}
+                                    <td className="px-6 py-4 text-white font-medium">
+                                        <div className="flex items-center gap-2">
+                                            <span className="truncate max-w-[220px]">{t.sessionName || t.type}</span>
+                                            {isDay2 && (
+                                                <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/30" title="Combined with Day 1 buy-in & bounties">
+                                                    <Link2 size={10} /> Day 2
+                                                </span>
+                                            )}
+                                            {isAdvancedDay1 && (
+                                                <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-400 border border-indigo-500/30" title="Bagged & advanced to Day 2">
+                                                    <Briefcase size={10} /> Advanced
+                                                </span>
+                                            )}
+                                        </div>
+                                        {(t.sessionName && t.sessionName !== t.type) && (
+                                            <p className="text-xs text-slate-500 font-normal mt-0.5">{t.type}</p>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-center text-slate-300">
                                         {startTimeStr}
@@ -128,7 +149,9 @@ export default function HistoryTable({
                                         <span className="bg-slate-800 px-2.5 py-1 rounded-md text-xs font-semibold border border-slate-700">{t.bullets.length}</span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-center text-slate-300">
-                                        {t.finishPosition ? (
+                                        {isAdvancedDay1 ? (
+                                            <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">ADV</span>
+                                        ) : t.finishPosition ? (
                                             <span className={`px-2.5 py-1 rounded-md text-xs font-semibold ${t.finishPosition <= 3 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-800 border border-slate-700'}`}>
                                                 {t.finishPosition}{t.fieldSize ? `/${t.fieldSize}` : ''}
                                             </span>

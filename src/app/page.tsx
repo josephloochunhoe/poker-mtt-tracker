@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
-import LiveTournament, { Tournament } from "@/components/LiveTournament";
+import LiveTournament, { Tournament, Day2Prefill } from "@/components/LiveTournament";
 import HistoryTable from "@/components/HistoryTable";
 import LiveCashSession, { CashSession } from "@/components/LiveCashSession";
 import CashHistoryTable from "@/components/CashHistoryTable";
-import { TrendingUp, DollarSign, Target, Activity, Loader2 } from "lucide-react";
+import { TrendingUp, DollarSign, Target, Activity, Loader2, Trophy, ArrowRight, Layers } from "lucide-react";
+import { defaultSessionName } from "@/lib/analytics";
 
 type Tab = "MTT" | "HomeGame" | "CashGame";
 
@@ -12,6 +13,7 @@ export default function Dashboard() {
     const [allRecords, setAllRecords] = useState<(Tournament | CashSession)[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<Tab>("MTT");
+    const [day2Prefill, setDay2Prefill] = useState<Day2Prefill | null>(null);
     const fetchAll = async () => {
         try {
             const res = await fetch("/api/tournaments");
@@ -79,6 +81,29 @@ export default function Dashboard() {
     const activeTournaments = tournaments.filter(t => t.status === "Active");
     const activeHomeGames = homeGames.filter(s => s.status === "Active");
     const activeCashGames = cashGames.filter(s => s.status === "Active");
+
+    // Phased events: advanced Day 1 flights that have qualified for a Day 2 Final.
+    const launchedDay2ParentIds = new Set(
+        tournaments.filter(t => t.parentTournamentId).map(t => t.parentTournamentId)
+    );
+    const advancedDay1s = tournaments.filter(
+        t => t.isPhased && t.phasedStage === "Day 1" && t.flightStatus === "Advanced"
+    );
+
+    const launchDay2 = (day1: Tournament) => {
+        const baseName = day1.sessionName || defaultSessionName(day1.type, day1.speed);
+        // Strip any trailing "Day 1" / "Flight" qualifier so the Day 2 label reads cleanly.
+        const parentLabel = baseName.replace(/\s*[-–]\s*(Day\s*1\w*|Flight\s*\w+)\s*$/i, "").trim() || baseName;
+        setDay2Prefill({
+            sessionName: `${parentLabel} - Day 2 Final`,
+            type: day1.type,
+            speed: day1.speed,
+            currency: day1.currency || "USD",
+            parentTournamentId: day1.id,
+        });
+        setActiveTab("MTT");
+        if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    };
 
     if (isLoading) {
         return (
@@ -150,8 +175,54 @@ export default function Dashboard() {
                             {activeTournaments.map(t => (
                                 <LiveTournament key={t.id} initialTournament={t} onCompleted={fetchAll} />
                             ))}
+
+                            {/* Advanced Day 1s — qualifying flights awaiting their Day 2 Final */}
+                            {advancedDay1s.length > 0 && (
+                                <div className="bg-amber-500/[0.04] border border-amber-500/20 rounded-2xl p-5 space-y-3">
+                                    <div className="flex items-center gap-2">
+                                        <Trophy size={16} className="text-amber-400" />
+                                        <h4 className="text-sm font-bold text-amber-300 uppercase tracking-wider">Advanced Day 1s</h4>
+                                        <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full text-xs font-semibold ml-auto">
+                                            {advancedDay1s.length}
+                                        </span>
+                                    </div>
+                                    {advancedDay1s.map(d1 => {
+                                        const launched = launchedDay2ParentIds.has(d1.id);
+                                        const sym = d1.currency === "MYR" ? "RM " : "$";
+                                        return (
+                                            <div key={d1.id} className="flex items-center justify-between gap-3 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3">
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-semibold text-white truncate">{d1.sessionName || d1.type}</p>
+                                                    <p className="text-xs text-slate-500 flex items-center gap-1.5">
+                                                        <Layers size={11} /> {d1.type}
+                                                        {(d1.bountiesWon || 0) > 0 && <span className="text-amber-400/80">· {sym}{(d1.bountiesWon || 0).toFixed(2)} bounties</span>}
+                                                    </p>
+                                                </div>
+                                                {launched ? (
+                                                    <span className="shrink-0 text-xs font-semibold text-slate-400 bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg">
+                                                        Day 2 Launched
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => launchDay2(d1)}
+                                                        className="shrink-0 flex items-center gap-1.5 text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg transition-all hover:shadow-[0_0_15px_rgba(217,119,6,0.4)]"
+                                                    >
+                                                        Launch Day 2 Final <ArrowRight size={13} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
                             <div className="border-t border-slate-800/80 pt-6">
-                                <LiveTournament key="launcher" onCompleted={fetchAll} />
+                                <LiveTournament
+                                    key={day2Prefill ? `launcher-day2-${day2Prefill.parentTournamentId}` : "launcher"}
+                                    prefill={day2Prefill || undefined}
+                                    onCancelPrefill={() => setDay2Prefill(null)}
+                                    onCompleted={fetchAll}
+                                />
                             </div>
                         </div>
                         <div className="lg:col-span-2">
