@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Search, Trash2, Loader2 } from "lucide-react";
+import { formatDateFromISO } from "@/lib/time";
 import { CashSession } from "./LiveCashSession";
 
 export default function CashHistoryTable({
@@ -100,7 +101,7 @@ export default function CashHistoryTable({
                             return (
                                 <tr key={s.id} className="hover:bg-slate-800/40 transition-colors group">
                                     <td className="px-6 py-4 whitespace-nowrap text-slate-300">
-                                        {new Date(s.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                        {formatDateFromISO(s.date)}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-white font-medium">{s.venue}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">

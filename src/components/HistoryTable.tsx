@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Tournament } from "./LiveTournament";
 import { getEventFinancials } from "@/lib/analytics";
 import { ChevronDown, Trash2, Loader2, Link2, Briefcase } from "lucide-react";
+import { formatDateFromISO, formatTimeFromISO } from "@/lib/time";
 
 const TOURNAMENT_TYPES = ["All", "Standard", "PKO", "Mystery Bounty", "Satellite"];
 
@@ -102,11 +103,9 @@ export default function HistoryTable({
                             const isDay2 = t.phasedStage === "Day 2";
                             const isAdvancedDay1 = t.phasedStage === "Day 1" && t.flightStatus === "Advanced";
                             const sym = t.currency === "MYR" ? "RM " : "$";
-                            const firstBulletDate = t.bullets.length > 0 ? new Date(t.bullets[0].registeredAt) : null;
-                            const firstStart = firstBulletDate ? firstBulletDate.getTime() : null;
-                            const startTimeStr = firstBulletDate
-                                ? firstBulletDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })
-                                : '-';
+                            const firstBulletISO = t.bullets.length > 0 ? t.bullets[0].registeredAt : null;
+                            const firstStart = firstBulletISO ? new Date(firstBulletISO).getTime() : null;
+                            const startTimeStr = firstBulletISO ? formatTimeFromISO(firstBulletISO) : '-';
                             const lastBullet = t.bullets[t.bullets.length - 1];
                             const lastEnd = lastBullet?.bustedAt ? new Date(lastBullet.bustedAt).getTime() : null;
                             const durationMs = firstStart && lastEnd ? lastEnd - firstStart : null;
@@ -119,7 +118,7 @@ export default function HistoryTable({
                             return (
                                 <tr key={t.id} className="hover:bg-slate-800/40 transition-colors group">
                                     <td className="px-6 py-4 whitespace-nowrap text-slate-300">
-                                        {(firstBulletDate || new Date(t.date)).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                        {formatDateFromISO(firstBulletISO ?? t.date)}
                                     </td>
                                     <td className="px-6 py-4 text-white font-medium">
                                         <div className="flex items-center gap-2">

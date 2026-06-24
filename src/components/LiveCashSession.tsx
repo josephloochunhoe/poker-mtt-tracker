@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { PlusCircle, Flag, X, Loader2 } from "lucide-react";
-import { nowUTC8, todayUTC8 } from "@/lib/time";
+import { nowUTC8, todayUTC8, formatShortDateFromISO, formatShortTimeFromISO } from "@/lib/time";
 import { Bullet } from "./LiveTournament";
 
 export interface CashSession {
@@ -238,7 +238,7 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
                             <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${accentColor === "purple" ? "bg-purple-500 shadow-[0_0_10px_rgba(147,51,234,0.6)]" : "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.6)]"} animate-pulse`}></span>
                             <h2 className="text-2xl font-bold tracking-tight break-words">{session.venue}</h2>
                         </div>
-                        <p className="text-slate-400 text-sm ml-5">{session.stakes} · {(session.bullets.length > 0 ? new Date(session.bullets[0].registeredAt) : new Date(session.date)).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+                        <p className="text-slate-400 text-sm ml-5">{session.stakes} · {formatShortDateFromISO(session.bullets.length > 0 ? session.bullets[0].registeredAt : session.date)}</p>
                     </div>
                     <div className="text-right">
                         <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1">Total In</p>
@@ -254,7 +254,7 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
                                     {bullet.bulletNumber === 1 ? "Buy-In" : `Top-Up #${bullet.bulletNumber - 1}`}
                                 </div>
                                 <span className="text-slate-400 text-sm">
-                                    {new Date(bullet.registeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    {formatShortTimeFromISO(bullet.registeredAt)}
                                 </span>
                             </div>
                             <div className="flex items-center gap-3">
