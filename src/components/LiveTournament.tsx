@@ -3,7 +3,7 @@ import { useState } from "react";
 import { PlusCircle, Flag, X, Loader2, Layers, Skull, Trophy, Briefcase } from "lucide-react";
 import { useMYRRate } from "@/hooks/useMYRRate";
 import { defaultSessionName } from "@/lib/analytics";
-import { nowUTC8, todayUTC8 } from "@/lib/time";
+import { nowUTC8, todayUTC8, formatShortDateFromISO, formatShortTimeFromISO } from "@/lib/time";
 
 export interface Bullet {
     bulletNumber: number;
@@ -392,7 +392,7 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
                             )}
                         </div>
                         <p className="text-slate-400 text-sm ml-5">
-                            {tournament.type} · {(tournament.bullets.length > 0 ? new Date(tournament.bullets[0].registeredAt) : new Date(tournament.date)).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                            {tournament.type} · {formatShortDateFromISO(tournament.bullets.length > 0 ? tournament.bullets[0].registeredAt : tournament.date)}
                         </p>
                     </div>
                     <div className="text-right">
@@ -412,7 +412,7 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
                                     #{bullet.bulletNumber}
                                 </div>
                                 <span className="text-slate-400 text-sm">
-                                    {new Date(bullet.registeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    {formatShortTimeFromISO(bullet.registeredAt)}
                                 </span>
                             </div>
                             <span className="text-slate-400 text-sm flex items-center gap-2">
