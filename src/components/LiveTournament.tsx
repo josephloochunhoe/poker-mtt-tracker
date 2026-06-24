@@ -379,11 +379,11 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
     return (
         <div className="bg-slate-900/80 backdrop-blur-sm text-white rounded-2xl shadow-xl overflow-hidden border border-slate-800/60 relative ring-1 ring-white/5">
             <div className="p-6 md:p-8">
-                <div className="flex justify-between items-start mb-8">
-                    <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.6)]"></span>
-                            <h2 className="text-2xl font-bold tracking-tight">{tournament.sessionName || tournament.type}</h2>
+                <div className="flex justify-between items-start mb-8 gap-4 flex-wrap">
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-3 mb-1 flex-wrap">
+                            <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.6)] shrink-0"></span>
+                            <h2 className="text-2xl font-bold tracking-tight break-words">{tournament.sessionName || tournament.type}</h2>
                             {tournament.isPhased && tournament.phasedStage && (
                                 <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${tournament.phasedStage === "Day 2" ? "bg-amber-500/10 text-amber-400 border-amber-500/30" : "bg-indigo-500/10 text-indigo-400 border-indigo-500/30"}`}>
                                     {tournament.phasedStage}
@@ -391,7 +391,7 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
                             )}
                         </div>
                         <p className="text-slate-400 text-sm ml-5">
-                            {tournament.type} · {new Date(tournament.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                            {tournament.type} · {(tournament.bullets.length > 0 ? new Date(tournament.bullets[0].registeredAt) : new Date(tournament.date)).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                         </p>
                     </div>
                     <div className="text-right">
