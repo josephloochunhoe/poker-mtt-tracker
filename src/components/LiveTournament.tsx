@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import { PlusCircle, Flag, X, Loader2 } from "lucide-react";
-import { useMYRRate } from "@/hooks/useMYRRate";
 
 export interface Bullet {
     bulletNumber: number;
@@ -43,8 +42,6 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
     const [newBuyIn, setNewBuyIn] = useState("0");
     const [newType, setNewType] = useState("Standard");
     const [newSpeed, setNewSpeed] = useState("Regular");
-    const myrRate = useMYRRate();
-
     const totalInvested = tournament?.bullets.reduce((sum, bullet) => sum + bullet.cost, 0) || 0;
 
     const isLauncher = !initialTournament;
@@ -204,7 +201,7 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
 
                 <div className="space-y-4">
                     <div className="space-y-1.5">
-                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Buy-In ($)</label>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Buy-In (RM)</label>
                         <input
                             type="number"
                             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-white placeholder-slate-600"
@@ -268,8 +265,7 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
                     </div>
                     <div className="text-right">
                         <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1">Total Invested</p>
-                        <p className="text-3xl font-black text-rose-400 tracking-tight">-${totalInvested}</p>
-                        {myrRate && <p className="text-xs text-slate-500 mt-0.5">(RM {(totalInvested * myrRate).toFixed(2)})</p>}
+                        <p className="text-3xl font-black text-rose-400 tracking-tight">-RM {totalInvested}</p>
                     </div>
                 </div>
 
@@ -349,7 +345,7 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Cash Won ($)</label>
+                                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Cash Won (RM)</label>
                                     <input
                                         type="number"
                                         step="0.01"
@@ -360,7 +356,7 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Bounties ($)</label>
+                                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Bounties (RM)</label>
                                     <input
                                         type="number"
                                         step="0.01"

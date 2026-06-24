@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { PlusCircle, Flag, X, Loader2 } from "lucide-react";
 import { Bullet } from "./LiveTournament";
-import { useMYRRate } from "@/hooks/useMYRRate";
 
 export interface CashSession {
     id: string;
@@ -30,8 +29,6 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
     const [newBuyIn, setNewBuyIn] = useState("0");
     const [newVenue, setNewVenue] = useState("");
     const [newStakes, setNewStakes] = useState("");
-    const myrRate = useMYRRate();
-
     const isLauncher = !initialSession;
     const totalInvested = session?.bullets.reduce((sum, b) => sum + b.cost, 0) || 0;
 
@@ -165,7 +162,7 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
 
                 <div className="space-y-4">
                     <div className="space-y-1.5">
-                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Buy-In ($)</label>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Buy-In (RM)</label>
                         <input
                             type="number"
                             className={`w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition-all text-white placeholder-slate-600 ${accentClasses.ring}`}
@@ -225,8 +222,7 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
                     </div>
                     <div className="text-right">
                         <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1">Total In</p>
-                        <p className="text-3xl font-black text-rose-400 tracking-tight">-${totalInvested}</p>
-                        {myrRate && <p className="text-xs text-slate-500 mt-0.5">(RM {(totalInvested * myrRate).toFixed(2)})</p>}
+                        <p className="text-3xl font-black text-rose-400 tracking-tight">-RM {totalInvested}</p>
                     </div>
                 </div>
 
@@ -242,7 +238,7 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
                                 </span>
                             </div>
                             <div className="flex items-center gap-3">
-                                <span className="text-slate-300 font-medium">${bullet.cost}</span>
+                                <span className="text-slate-300 font-medium">RM {bullet.cost}</span>
                                 {bullet.bustedAt ? (
                                     <span className="text-rose-400 bg-rose-400/10 px-2.5 py-1 rounded-md text-xs font-medium border border-rose-400/20">Topped Up</span>
                                 ) : (
@@ -286,7 +282,7 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
                         </div>
                         <form onSubmit={handleComplete} className="space-y-5">
                             <div className="space-y-1.5">
-                                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Cash Out Amount ($)</label>
+                                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Cash Out Amount (RM)</label>
                                 <input
                                     type="number"
                                     step="0.01"
@@ -300,19 +296,13 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
                             <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
                                 <div className="flex justify-between text-sm mb-2">
                                     <span className="text-slate-400">Total Invested</span>
-                                    <div className="text-right">
-                                        <span className="text-slate-300">${totalInvested.toFixed(2)}</span>
-                                        {myrRate && <div className="text-xs text-slate-500">(RM {(totalInvested * myrRate).toFixed(2)})</div>}
-                                    </div>
+                                    <span className="text-slate-300">RM {totalInvested.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-slate-400">Estimated P/L</span>
-                                    <div className="text-right">
-                                        <span className={parseFloat(cashOutValue || "0") - totalInvested >= 0 ? "text-green-400 font-bold" : "text-rose-400 font-bold"}>
-                                            {(parseFloat(cashOutValue || "0") - totalInvested) >= 0 ? "+" : ""}${(parseFloat(cashOutValue || "0") - totalInvested).toFixed(2)}
-                                        </span>
-                                        {myrRate && <div className="text-xs text-slate-500 font-normal">(RM {((parseFloat(cashOutValue || "0") - totalInvested) * myrRate).toFixed(2)})</div>}
-                                    </div>
+                                    <span className={parseFloat(cashOutValue || "0") - totalInvested >= 0 ? "text-green-400 font-bold" : "text-rose-400 font-bold"}>
+                                        {(parseFloat(cashOutValue || "0") - totalInvested) >= 0 ? "+" : ""}RM {(parseFloat(cashOutValue || "0") - totalInvested).toFixed(2)}
+                                    </span>
                                 </div>
                             </div>
                             <button
