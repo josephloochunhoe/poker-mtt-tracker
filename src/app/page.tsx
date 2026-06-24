@@ -5,8 +5,9 @@ import HistoryTable from "@/components/HistoryTable";
 import LiveCashSession, { CashSession } from "@/components/LiveCashSession";
 import CashHistoryTable from "@/components/CashHistoryTable";
 import { TrendingUp, DollarSign, Target, Activity, Loader2 } from "lucide-react";
+import CurrencyConverter from "@/components/CurrencyConverter";
 
-type Tab = "MTT" | "HomeGame" | "CashGame";
+type Tab = "MTT" | "HomeGame" | "CashGame" | "Converter";
 
 export default function Dashboard() {
     const [allRecords, setAllRecords] = useState<(Tournament | CashSession)[]>([]);
@@ -108,9 +109,9 @@ export default function Dashboard() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 bg-slate-900/60 border border-slate-800/80 rounded-2xl p-1.5 w-fit">
-                {(["MTT", "HomeGame", "CashGame"] as Tab[]).map(tab => {
-                    const labels: Record<Tab, string> = { MTT: "MTT", HomeGame: "Home Games", CashGame: "Cash Games" };
+            <div className="flex gap-1 bg-slate-900/60 border border-slate-800/80 rounded-2xl p-1.5 w-fit flex-wrap">
+                {(["MTT", "HomeGame", "CashGame", "Converter"] as Tab[]).map(tab => {
+                    const labels: Record<Tab, string> = { MTT: "MTT", HomeGame: "Home Games", CashGame: "Cash Games", Converter: "Converter" };
                     const active = activeTab === tab;
                     return (
                         <button
@@ -120,7 +121,8 @@ export default function Dashboard() {
                                 active
                                     ? tab === "MTT" ? "bg-blue-600 text-white shadow-lg"
                                     : tab === "HomeGame" ? "bg-purple-600 text-white shadow-lg"
-                                    : "bg-emerald-600 text-white shadow-lg"
+                                    : tab === "CashGame" ? "bg-emerald-600 text-white shadow-lg"
+                                    : "bg-amber-600 text-white shadow-lg"
                                     : "text-slate-400 hover:text-white"
                             }`}
                         >
@@ -197,6 +199,17 @@ export default function Dashboard() {
                                 </div>
                             )}
                         </div>
+                    </div>
+                </>
+            )}
+
+            {/* Currency Converter Tab */}
+            {activeTab === "Converter" && (
+                <>
+                    <div>
+                        <h2 className="text-xl font-bold text-white mb-1">Currency Converter</h2>
+                        <p className="text-slate-400 text-sm mb-6">Rates cached server-side every 12 hours · All calculations run locally.</p>
+                        <CurrencyConverter />
                     </div>
                 </>
             )}
