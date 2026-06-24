@@ -119,7 +119,7 @@ export default function HistoryTable({
                             return (
                                 <tr key={t.id} className="hover:bg-slate-800/40 transition-colors group">
                                     <td className="px-6 py-4 whitespace-nowrap text-slate-300">
-                                        {new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                        {(firstBulletDate || new Date(t.date)).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                     </td>
                                     <td className="px-6 py-4 text-white font-medium">
                                         <div className="flex items-center gap-2">
@@ -192,7 +192,7 @@ export default function HistoryTable({
                                             <button
                                                 onClick={() => setConfirmDeleteId(t.id)}
                                                 title="Delete record"
-                                                className="text-slate-600 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-rose-400/10"
+                                                className="text-slate-500 hover:text-rose-400 transition-colors p-1.5 rounded-lg hover:bg-rose-400/10"
                                             >
                                                 <Trash2 size={15} />
                                             </button>

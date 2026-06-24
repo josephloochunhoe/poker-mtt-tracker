@@ -231,13 +231,13 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
     return (
         <div className="bg-slate-900/80 backdrop-blur-sm text-white rounded-2xl shadow-xl overflow-hidden border border-slate-800/60 relative ring-1 ring-white/5">
             <div className="p-6 md:p-8">
-                <div className="flex justify-between items-start mb-8">
-                    <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <span className={`w-2.5 h-2.5 rounded-full ${accentColor === "purple" ? "bg-purple-500 shadow-[0_0_10px_rgba(147,51,234,0.6)]" : "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.6)]"} animate-pulse`}></span>
-                            <h2 className="text-2xl font-bold tracking-tight">{session.venue}</h2>
+                <div className="flex justify-between items-start mb-8 gap-4 flex-wrap">
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-3 mb-1 flex-wrap">
+                            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${accentColor === "purple" ? "bg-purple-500 shadow-[0_0_10px_rgba(147,51,234,0.6)]" : "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.6)]"} animate-pulse`}></span>
+                            <h2 className="text-2xl font-bold tracking-tight break-words">{session.venue}</h2>
                         </div>
-                        <p className="text-slate-400 text-sm ml-5">{session.stakes} · {new Date(session.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+                        <p className="text-slate-400 text-sm ml-5">{session.stakes} · {(session.bullets.length > 0 ? new Date(session.bullets[0].registeredAt) : new Date(session.date)).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</p>
                     </div>
                     <div className="text-right">
                         <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1">Total In</p>
