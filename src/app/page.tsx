@@ -83,12 +83,31 @@ export default function Dashboard() {
     const activeCashGames = cashGames.filter(s => s.status === "Active");
 
     // Phased events: advanced Day 1 flights that have qualified for a Day 2 Final.
-    const launchedDay2ParentIds = new Set(
-        tournaments.filter(t => t.parentTournamentId).map(t => t.parentTournamentId)
-    );
+    const launchedDay2ParentIds = new Set<string | undefined>([
+        ...tournaments.filter(t => t.parentTournamentId).map(t => t.parentTournamentId),
+        ...tournaments.flatMap(t => t.additionalParentIds || []),
+    ]);
     const advancedDay1s = tournaments.filter(
         t => t.isPhased && t.phasedStage === "Day 1" && t.flightStatus === "Advanced"
     );
+    const activeDay2s = activeTournaments.filter(t => t.isPhased && t.phasedStage === "Day 2");
+
+    /** Find an already-active Day 2 that belongs to the same tournament series as a Day 1 flight. */
+    const findMatchingActiveDay2 = (d1: Tournament): Tournament | undefined => {
+        const baseName = (d1.sessionName || defaultSessionName(d1.type, d1.speed))
+            .replace(/\s*[-–]\s*(Day\s*1\w*|Flight\s*\w+)\s*$/i, "").trim();
+        const expectedDay2Name = `${baseName} - Day 2 Final`;
+        return activeDay2s.find(d2 => d2.sessionName === expectedDay2Name);
+    };
+
+    const linkToActiveDay2 = async (day1: Tournament, day2: Tournament) => {
+        await fetch("/api/tournaments", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "LINK_FLIGHT", id: day2.id, day1Id: day1.id }),
+        });
+        fetchAll();
+    };
 
     const launchDay2 = (day1: Tournament) => {
         const baseName = day1.sessionName || defaultSessionName(day1.type, day1.speed);
@@ -202,14 +221,24 @@ export default function Dashboard() {
                                                     <span className="shrink-0 text-xs font-semibold text-slate-400 bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg">
                                                         Day 2 Launched
                                                     </span>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => launchDay2(d1)}
-                                                        className="shrink-0 flex items-center gap-1.5 text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg transition-all hover:shadow-[0_0_15px_rgba(217,119,6,0.4)]"
-                                                    >
-                                                        Launch Day 2 Final <ArrowRight size={13} />
-                                                    </button>
-                                                )}
+                                                ) : (() => {
+                                                    const matchingDay2 = findMatchingActiveDay2(d1);
+                                                    return matchingDay2 ? (
+                                                        <button
+                                                            onClick={() => linkToActiveDay2(d1, matchingDay2)}
+                                                            className="shrink-0 flex items-center gap-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg transition-all hover:shadow-[0_0_15px_rgba(99,102,241,0.4)]"
+                                                        >
+                                                            Link to Active Day 2 <ArrowRight size={13} />
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => launchDay2(d1)}
+                                                            className="shrink-0 flex items-center gap-1.5 text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg transition-all hover:shadow-[0_0_15px_rgba(217,119,6,0.4)]"
+                                                        >
+                                                            Launch Day 2 Final <ArrowRight size={13} />
+                                                        </button>
+                                                    );
+                                                })()}
                                             </div>
                                         );
                                     })}
