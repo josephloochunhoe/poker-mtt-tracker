@@ -13,7 +13,9 @@ export default function HistoryTable({
     const [searchTerm, setSearchTerm] = useState("");
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
-    const completedTournaments = tournaments.filter(t => t.status === "Completed");
+    const completedTournaments = tournaments
+        .filter(t => t.status === "Completed")
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const filtered = completedTournaments.filter(t =>
         t.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -61,6 +63,7 @@ export default function HistoryTable({
                         <tr>
                             <th className="px-6 py-4">Date</th>
                             <th className="px-6 py-4">Type</th>
+                            <th className="px-6 py-4 text-center">Duration</th>
                             <th className="px-6 py-4 text-center">Bullets</th>
                             <th className="px-6 py-4 text-center">Pos</th>
                             <th className="px-6 py-4 text-right">Invested</th>
@@ -73,7 +76,7 @@ export default function HistoryTable({
                     <tbody className="divide-y divide-slate-800/50">
                         {filtered.length === 0 ? (
                             <tr>
-                                <td colSpan={9} className="px-6 py-12 text-center text-slate-500">
+                                <td colSpan={10} className="px-6 py-12 text-center text-slate-500">
                                     No completed sessions found. Play some tournaments!
                                 </td>
                             </tr>
@@ -85,6 +88,13 @@ export default function HistoryTable({
                             const isProfit = profit > 0;
                             const isLoss = profit < 0;
                             const sym = t.currency === "MYR" ? "RM " : "$";
+                            const firstStart = t.bullets.length > 0 ? new Date(t.bullets[0].registeredAt).getTime() : null;
+                            const lastBullet = t.bullets[t.bullets.length - 1];
+                            const lastEnd = lastBullet?.bustedAt ? new Date(lastBullet.bustedAt).getTime() : null;
+                            const durationMs = firstStart && lastEnd ? lastEnd - firstStart : null;
+                            const durationStr = durationMs != null
+                                ? `${Math.floor(durationMs / 3600000)}h ${Math.floor((durationMs % 3600000) / 60000)}m`
+                                : '-';
                             const isConfirming = confirmDeleteId === t.id;
                             const isDeleting = deletingId === t.id;
 
@@ -95,6 +105,9 @@ export default function HistoryTable({
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-white font-medium">
                                         {t.type}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-center text-slate-300">
+                                        {durationStr}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-center">
                                         <span className="bg-slate-800 px-2.5 py-1 rounded-md text-xs font-semibold border border-slate-700">{t.bullets.length}</span>
