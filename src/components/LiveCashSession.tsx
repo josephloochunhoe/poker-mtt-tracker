@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { PlusCircle, Flag, X, Loader2 } from "lucide-react";
 import { Bullet } from "./LiveTournament";
+import { useMYRRate } from "@/hooks/useMYRRate";
 
 export interface CashSession {
     id: string;
@@ -29,6 +30,7 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
     const [newBuyIn, setNewBuyIn] = useState("0");
     const [newVenue, setNewVenue] = useState("");
     const [newStakes, setNewStakes] = useState("");
+    const myrRate = useMYRRate();
 
     const isLauncher = !initialSession;
     const totalInvested = session?.bullets.reduce((sum, b) => sum + b.cost, 0) || 0;
@@ -224,6 +226,7 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
                     <div className="text-right">
                         <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1">Total In</p>
                         <p className="text-3xl font-black text-rose-400 tracking-tight">-${totalInvested}</p>
+                        {myrRate && <p className="text-xs text-slate-500 mt-0.5">(RM {(totalInvested * myrRate).toFixed(2)})</p>}
                     </div>
                 </div>
 
@@ -297,13 +300,19 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
                             <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
                                 <div className="flex justify-between text-sm mb-2">
                                     <span className="text-slate-400">Total Invested</span>
-                                    <span className="text-slate-300">${totalInvested.toFixed(2)}</span>
+                                    <div className="text-right">
+                                        <span className="text-slate-300">${totalInvested.toFixed(2)}</span>
+                                        {myrRate && <div className="text-xs text-slate-500">(RM {(totalInvested * myrRate).toFixed(2)})</div>}
+                                    </div>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-slate-400">Estimated P/L</span>
-                                    <span className={parseFloat(cashOutValue || "0") - totalInvested >= 0 ? "text-green-400 font-bold" : "text-rose-400 font-bold"}>
-                                        {(parseFloat(cashOutValue || "0") - totalInvested) >= 0 ? "+" : ""}${(parseFloat(cashOutValue || "0") - totalInvested).toFixed(2)}
-                                    </span>
+                                    <div className="text-right">
+                                        <span className={parseFloat(cashOutValue || "0") - totalInvested >= 0 ? "text-green-400 font-bold" : "text-rose-400 font-bold"}>
+                                            {(parseFloat(cashOutValue || "0") - totalInvested) >= 0 ? "+" : ""}${(parseFloat(cashOutValue || "0") - totalInvested).toFixed(2)}
+                                        </span>
+                                        {myrRate && <div className="text-xs text-slate-500 font-normal">(RM {((parseFloat(cashOutValue || "0") - totalInvested) * myrRate).toFixed(2)})</div>}
+                                    </div>
                                 </div>
                             </div>
                             <button
