@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { PlusCircle, Flag, X, Loader2 } from "lucide-react";
+import { nowUTC8, todayUTC8 } from "@/lib/time";
 import { Bullet } from "./LiveTournament";
 
 export interface CashSession {
@@ -60,7 +61,7 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
         setIsSaving(true);
         const newSession: CashSession = {
             id: `${prefix}${Date.now()}`,
-            date: new Date().toISOString().split("T")[0],
+            date: todayUTC8(),
             gameCategory,
             venue: newVenue.trim() || (gameCategory === "HomeGame" ? "Home Game" : "Casino"),
             stakes: newStakes.trim() || "-",
@@ -68,7 +69,7 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
             currency: newCurrency,
             bullets: [{
                 bulletNumber: 1,
-                registeredAt: new Date().toISOString(),
+                registeredAt: nowUTC8(),
                 bustedAt: null,
                 cost: parseFloat(newBuyIn) || 0,
             }],
@@ -95,7 +96,7 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
     const handleTopUp = async () => {
         if (!session) return;
         setIsSaving(true);
-        const now = new Date().toISOString();
+        const now = nowUTC8();
         const initialCost = session.bullets[0].cost;
         const lastIndex = session.bullets.length - 1;
 
@@ -130,7 +131,7 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
         if (!session) return;
         setIsSaving(true);
 
-        const now = new Date().toISOString();
+        const now = nowUTC8();
         const cashOut = parseFloat(cashOutValue) || 0;
         const updatedBullets = [...session.bullets];
         updatedBullets[updatedBullets.length - 1] = { ...updatedBullets[updatedBullets.length - 1], bustedAt: now };

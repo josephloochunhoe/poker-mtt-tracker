@@ -3,6 +3,7 @@ import { useState } from "react";
 import { PlusCircle, Flag, X, Loader2, Layers, Skull, Trophy, Briefcase } from "lucide-react";
 import { useMYRRate } from "@/hooks/useMYRRate";
 import { defaultSessionName } from "@/lib/analytics";
+import { nowUTC8, todayUTC8 } from "@/lib/time";
 
 export interface Bullet {
     bulletNumber: number;
@@ -87,7 +88,7 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
         const phased = isDay2 || isPhasedDay1;
         const newTournament: Tournament = {
             id: `tournament_${Date.now()}`,
-            date: new Date().toISOString().split("T")[0],
+            date: todayUTC8(),
             type: type,
             speed: speed,
             status: "Active",
@@ -100,7 +101,7 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
             bullets: [
                 {
                     bulletNumber: 1,
-                    registeredAt: new Date().toISOString(),
+                    registeredAt: nowUTC8(),
                     bustedAt: null,
                     cost: isDay2 ? 0 : initialBuyIn,
                 },
@@ -136,7 +137,7 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
     const handleRebuy = async () => {
         if (!tournament) return;
         setIsSaving(true);
-        const now = new Date().toISOString();
+        const now = nowUTC8();
         const lastIndex = tournament.bullets.length - 1;
         const initialBuyIn = tournament.bullets[0].cost;
 
@@ -187,7 +188,7 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
         setIsSaving(true);
 
         const advanced = isPhasedDay1Flight && outcome === "advanced";
-        const now = new Date().toISOString();
+        const now = nowUTC8();
         // Bagged/advanced flights keep no finish position or field size and win no cash.
         const finishPos = advanced ? undefined : (parseInt(formData.finishPosition) || undefined);
         const fieldSz = advanced ? undefined : (parseInt(formData.fieldSize) || undefined);
