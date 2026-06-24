@@ -2,84 +2,84 @@
 import { useEffect, useState } from "react";
 import LiveTournament, { Tournament } from "@/components/LiveTournament";
 import HistoryTable from "@/components/HistoryTable";
+import LiveCashSession, { CashSession } from "@/components/LiveCashSession";
+import CashHistoryTable from "@/components/CashHistoryTable";
 import { TrendingUp, DollarSign, Target, Activity, Loader2 } from "lucide-react";
 
-export default function Dashboard() {
-    const [tournaments, setTournaments] = useState<Tournament[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+type Tab = "MTT" | "HomeGame" | "CashGame";
 
-    const fetchTournaments = async () => {
+export default function Dashboard() {
+    const [allRecords, setAllRecords] = useState<(Tournament | CashSession)[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<Tab>("MTT");
+
+    const fetchAll = async () => {
         try {
             const res = await fetch("/api/tournaments");
             const data = await res.json();
-            if (data.tournaments) {
-                setTournaments(data.tournaments);
-            }
+            if (data.tournaments) setAllRecords(data.tournaments);
         } catch (err) {
-            console.error("Failed to fetch tournaments", err);
+            console.error("Failed to fetch", err);
         } finally {
             setIsLoading(false);
         }
     };
 
-    useEffect(() => {
-        fetchTournaments();
-    }, []);
+    useEffect(() => { fetchAll(); }, []);
 
-    // Calculate Top-Level Metrics
-    const completed = tournaments.filter(t => t.status === "Completed");
-    let totalInvested = 0;
-    let totalCashed = 0;
-    let totalBullets = 0;
-    
-    // Extract intervals to calculate true unique hours played (merging overlapping sessions)
-    const intervals: { start: number; end: number }[] = [];
+    // Split records by type
+    const isCashSession = (r: Tournament | CashSession): r is CashSession =>
+        (r as CashSession).gameCategory === "HomeGame" || (r as CashSession).gameCategory === "CashGame";
 
-    completed.forEach(t => {
+    const tournaments = allRecords.filter((r): r is Tournament => !isCashSession(r));
+    const homeGames = allRecords.filter((r): r is CashSession => isCashSession(r) && r.gameCategory === "HomeGame");
+    const cashGames = allRecords.filter((r): r is CashSession => isCashSession(r) && r.gameCategory === "CashGame");
+
+    // MTT metrics
+    const completedMTT = tournaments.filter(t => t.status === "Completed");
+    let mttInvested = 0, mttCashed = 0, mttBullets = 0;
+    const mttIntervals: { start: number; end: number }[] = [];
+    completedMTT.forEach(t => {
         t.bullets.forEach(b => {
-            totalInvested += b.cost;
-            totalBullets += 1;
-            
-            if (b.registeredAt && b.bustedAt) {
-                intervals.push({
-                    start: new Date(b.registeredAt).getTime(),
-                    end: new Date(b.bustedAt).getTime()
-                });
-            }
+            mttInvested += b.cost;
+            mttBullets++;
+            if (b.registeredAt && b.bustedAt)
+                mttIntervals.push({ start: new Date(b.registeredAt).getTime(), end: new Date(b.bustedAt).getTime() });
         });
-        totalCashed += (t.cashWon || 0) + (t.bountiesWon || 0);
+        mttCashed += (t.cashWon || 0) + (t.bountiesWon || 0);
     });
+    const mttHours = calcMergedHours(mttIntervals);
+    const mttProfit = mttCashed - mttInvested;
+    const mttROI = mttInvested > 0 ? (mttProfit / mttInvested) * 100 : 0;
+    const mttABI = mttBullets > 0 ? mttInvested / mttBullets : 0;
+    const mttHourly = mttHours > 0 ? mttProfit / mttHours : 0;
 
-    // Merge overlapping intervals
-    let totalHours = 0;
-    if (intervals.length > 0) {
-        // Sort intervals by start time
-        const sorted = [...intervals].sort((a, b) => a.start - b.start);
-        const merged = [sorted[0]];
-        
-        for (let i = 1; i < sorted.length; i++) {
-            const current = sorted[i];
-            const last = merged[merged.length - 1];
-            if (current.start <= last.end) {
-                last.end = Math.max(last.end, current.end);
-            } else {
-                merged.push(current);
-            }
-        }
-        
-        let totalMs = 0;
-        merged.forEach(interval => {
-            totalMs += interval.end - interval.start;
+    // Cash/Home metrics
+    const cashMetrics = (sessions: CashSession[]) => {
+        const completed = sessions.filter(s => s.status === "Completed");
+        let invested = 0, cashOut = 0, totalMs = 0, sessionCount = 0;
+        completed.forEach(s => {
+            const inv = s.bullets.reduce((sum, b) => sum + b.cost, 0);
+            invested += inv;
+            cashOut += s.cashOut || 0;
+            const first = new Date(s.bullets[0].registeredAt).getTime();
+            const last = s.bullets[s.bullets.length - 1];
+            if (last.bustedAt) { totalMs += new Date(last.bustedAt).getTime() - first; sessionCount++; }
         });
-        totalHours = totalMs / (1000 * 60 * 60);
-    }
+        const hours = totalMs / (1000 * 60 * 60);
+        const profit = cashOut - invested;
+        return { profit, hours, hourly: hours > 0 ? profit / hours : 0, sessions: completed.length };
+    };
 
-    const netProfit = totalCashed - totalInvested;
-    const roi = totalInvested > 0 ? (netProfit / totalInvested) * 100 : 0;
-    const abi = totalBullets > 0 ? totalInvested / totalBullets : 0;
-    const hourly = totalHours > 0 ? netProfit / totalHours : 0;
+    const homeMetrics = cashMetrics(homeGames);
+    const cashMetricsData = cashMetrics(cashGames);
+
+    // Overall net profit (all game types combined)
+    const overallProfit = mttProfit + homeMetrics.profit + cashMetricsData.profit;
 
     const activeTournaments = tournaments.filter(t => t.status === "Active");
+    const activeHomeGames = homeGames.filter(s => s.status === "Active");
+    const activeCashGames = cashGames.filter(s => s.status === "Active");
 
     if (isLoading) {
         return (
@@ -92,83 +92,178 @@ export default function Dashboard() {
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Header */}
-            <div>
-                <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white mb-2">
-                    Poker <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Tracker</span>
-                </h1>
-                <p className="text-slate-400">Your comprehensive multi-table tournament performance.</p>
-            </div>
-
-            {/* High-Level Metrics Scorecard */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <MetricCard 
-                    title="Net Profit" 
-                    value={`$${netProfit.toFixed(2)}`} 
-                    icon={<DollarSign size={20} className={netProfit >= 0 ? "text-green-400" : "text-rose-400"} />} 
-                    trend={netProfit >= 0 ? "positive" : "negative"}
-                />
-                <MetricCard 
-                    title="Overall ROI" 
-                    value={`${roi.toFixed(1)}%`} 
-                    icon={<TrendingUp size={20} className={roi >= 0 ? "text-green-400" : "text-rose-400"} />} 
-                    trend={roi >= 0 ? "positive" : "negative"}
-                />
-                <MetricCard 
-                    title="Average Buy-In (ABI)" 
-                    value={`$${abi.toFixed(2)}`} 
-                    icon={<Target size={20} className="text-blue-400" />} 
-                    trend="neutral"
-                />
-                <MetricCard 
-                    title="Hourly Rate" 
-                    value={`$${hourly.toFixed(2)}/hr`} 
-                    icon={<Activity size={20} className={hourly >= 0 ? "text-green-400" : "text-rose-400"} />} 
-                    trend={hourly >= 0 ? "positive" : "negative"}
-                />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Active Session Area */}
-                <div className="lg:col-span-1 space-y-6">
-                    <div className="flex justify-between items-center">
-                        <h3 className="text-xl font-bold tracking-tight text-white">Active Sessions</h3>
-                        {activeTournaments.length > 0 && (
-                            <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-0.5 rounded-full text-xs font-semibold">
-                                {activeTournaments.length} Running
-                            </span>
-                        )}
-                    </div>
-                    
-                    {/* Render active tournaments */}
-                    {activeTournaments.map(t => (
-                        <LiveTournament 
-                            key={t.id} 
-                            initialTournament={t} 
-                            onCompleted={fetchTournaments} 
-                        />
-                    ))}
-
-                    {/* Always display a launcher card so users can start another session */}
-                    <div className="border-t border-slate-800/80 pt-6">
-                        <LiveTournament 
-                            key="launcher" 
-                            onCompleted={fetchTournaments} 
-                        />
-                    </div>
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white mb-2">
+                      Poker <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Tracker</span>
+                    </h1>
+                    <p className="text-slate-400">Your comprehensive poker performance dashboard.</p>
                 </div>
-
-                {/* History Area */}
-                <div className="lg:col-span-2">
-                    <HistoryTable tournaments={tournaments} onDelete={fetchTournaments} />
+                <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl px-5 py-3 text-right">
+                    <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-0.5">Overall Net Profit</p>
+                    <p className={`text-2xl font-black tracking-tight ${overallProfit >= 0 ? "text-green-400" : "text-rose-400"}`}>
+                        {overallProfit >= 0 ? "+" : ""}${overallProfit.toFixed(2)}
+                    </p>
                 </div>
             </div>
+
+            {/* Tabs */}
+            <div className="flex gap-1 bg-slate-900/60 border border-slate-800/80 rounded-2xl p-1.5 w-fit">
+                {(["MTT", "HomeGame", "CashGame"] as Tab[]).map(tab => {
+                    const labels: Record<Tab, string> = { MTT: "MTT", HomeGame: "Home Games", CashGame: "Cash Games" };
+                    const active = activeTab === tab;
+                    return (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
+                                active
+                                    ? tab === "MTT" ? "bg-blue-600 text-white shadow-lg"
+                                    : tab === "HomeGame" ? "bg-purple-600 text-white shadow-lg"
+                                    : "bg-emerald-600 text-white shadow-lg"
+                                    : "text-slate-400 hover:text-white"
+                            }`}
+                        >
+                            {labels[tab]}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* MTT Tab */}
+            {activeTab === "MTT" && (
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <MetricCard title="Net Profit" value={`$${mttProfit.toFixed(2)}`} icon={<DollarSign size={20} className={mttProfit >= 0 ? "text-green-400" : "text-rose-400"} />} trend={mttProfit >= 0 ? "positive" : "negative"} />
+                        <MetricCard title="Overall ROI" value={`${mttROI.toFixed(1)}%`} icon={<TrendingUp size={20} className={mttROI >= 0 ? "text-green-400" : "text-rose-400"} />} trend={mttROI >= 0 ? "positive" : "negative"} />
+                        <MetricCard title="Avg Buy-In (ABI)" value={`$${mttABI.toFixed(2)}`} icon={<Target size={20} className="text-blue-400" />} trend="neutral" />
+                        <MetricCard title="Hourly Rate" value={`$${mttHourly.toFixed(2)}/hr`} icon={<Activity size={20} className={mttHourly >= 0 ? "text-green-400" : "text-rose-400"} />} trend={mttHourly >= 0 ? "positive" : "negative"} />
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-1 space-y-6">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-xl font-bold tracking-tight text-white">Active Sessions</h3>
+                                {activeTournaments.length > 0 && (
+                                    <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                                        {activeTournaments.length} Running
+                                    </span>
+                                )}
+                            </div>
+                            {activeTournaments.map(t => (
+                                <LiveTournament key={t.id} initialTournament={t} onCompleted={fetchAll} />
+                            ))}
+                            <div className="border-t border-slate-800/80 pt-6">
+                                <LiveTournament key="launcher" onCompleted={fetchAll} />
+                            </div>
+                        </div>
+                        <div className="lg:col-span-2">
+                            <HistoryTable tournaments={tournaments} onDelete={fetchAll} />
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* Home Games Tab */}
+            {activeTab === "HomeGame" && (
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <MetricCard title="Net Profit" value={`$${homeMetrics.profit.toFixed(2)}`} icon={<DollarSign size={20} className={homeMetrics.profit >= 0 ? "text-green-400" : "text-rose-400"} />} trend={homeMetrics.profit >= 0 ? "positive" : "negative"} accent="purple" />
+                        <MetricCard title="Hourly Rate" value={`$${homeMetrics.hourly.toFixed(2)}/hr`} icon={<Activity size={20} className={homeMetrics.hourly >= 0 ? "text-green-400" : "text-rose-400"} />} trend={homeMetrics.hourly >= 0 ? "positive" : "negative"} accent="purple" />
+                        <MetricCard title="Sessions Played" value={`${homeMetrics.sessions}`} icon={<Target size={20} className="text-purple-400" />} trend="neutral" accent="purple" />
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-1 space-y-6">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-xl font-bold tracking-tight text-white">Active Sessions</h3>
+                                {activeHomeGames.length > 0 && (
+                                    <span className="bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                                        {activeHomeGames.length} Running
+                                    </span>
+                                )}
+                            </div>
+                            {activeHomeGames.map(s => (
+                                <LiveCashSession key={s.id} gameCategory="HomeGame" initialSession={s} onCompleted={fetchAll} />
+                            ))}
+                            <div className="border-t border-slate-800/80 pt-6">
+                                <LiveCashSession gameCategory="HomeGame" onCompleted={fetchAll} />
+                            </div>
+                        </div>
+                        <div className="lg:col-span-2">
+                            {homeGames.length > 0 ? (
+                                <CashHistoryTable sessions={homeGames} onDelete={fetchAll} />
+                            ) : (
+                                <div className="mt-8 bg-slate-900/60 border border-slate-800/80 rounded-2xl p-12 text-center text-slate-500">
+                                    No home game sessions recorded yet.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* Cash Games Tab */}
+            {activeTab === "CashGame" && (
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <MetricCard title="Net Profit" value={`$${cashMetricsData.profit.toFixed(2)}`} icon={<DollarSign size={20} className={cashMetricsData.profit >= 0 ? "text-green-400" : "text-rose-400"} />} trend={cashMetricsData.profit >= 0 ? "positive" : "negative"} accent="emerald" />
+                        <MetricCard title="Hourly Rate" value={`$${cashMetricsData.hourly.toFixed(2)}/hr`} icon={<Activity size={20} className={cashMetricsData.hourly >= 0 ? "text-green-400" : "text-rose-400"} />} trend={cashMetricsData.hourly >= 0 ? "positive" : "negative"} accent="emerald" />
+                        <MetricCard title="Sessions Played" value={`${cashMetricsData.sessions}`} icon={<Target size={20} className="text-emerald-400" />} trend="neutral" accent="emerald" />
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-1 space-y-6">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-xl font-bold tracking-tight text-white">Active Sessions</h3>
+                                {activeCashGames.length > 0 && (
+                                    <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                                        {activeCashGames.length} Running
+                                    </span>
+                                )}
+                            </div>
+                            {activeCashGames.map(s => (
+                                <LiveCashSession key={s.id} gameCategory="CashGame" initialSession={s} onCompleted={fetchAll} />
+                            ))}
+                            <div className="border-t border-slate-800/80 pt-6">
+                                <LiveCashSession gameCategory="CashGame" onCompleted={fetchAll} />
+                            </div>
+                        </div>
+                        <div className="lg:col-span-2">
+                            {cashGames.length > 0 ? (
+                                <CashHistoryTable sessions={cashGames} onDelete={fetchAll} />
+                            ) : (
+                                <div className="mt-8 bg-slate-900/60 border border-slate-800/80 rounded-2xl p-12 text-center text-slate-500">
+                                    No live cash sessions recorded yet.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 }
 
-function MetricCard({ title, value, icon, trend }: { title: string, value: string, icon: React.ReactNode, trend: "positive" | "negative" | "neutral" }) {
+function calcMergedHours(intervals: { start: number; end: number }[]) {
+    if (intervals.length === 0) return 0;
+    const sorted = [...intervals].sort((a, b) => a.start - b.start);
+    const merged = [sorted[0]];
+    for (let i = 1; i < sorted.length; i++) {
+        const cur = sorted[i];
+        const last = merged[merged.length - 1];
+        if (cur.start <= last.end) last.end = Math.max(last.end, cur.end);
+        else merged.push(cur);
+    }
+    return merged.reduce((sum, iv) => sum + (iv.end - iv.start), 0) / (1000 * 60 * 60);
+}
+
+function MetricCard({ title, value, icon, trend, accent = "blue" }: {
+    title: string;
+    value: string;
+    icon: React.ReactNode;
+    trend: "positive" | "negative" | "neutral";
+    accent?: "blue" | "purple" | "emerald";
+}) {
     const trendColor = trend === "positive" ? "text-green-400" : trend === "negative" ? "text-rose-400" : "text-slate-100";
-    const bgGlow = trend === "positive" ? "from-green-500/5" : trend === "negative" ? "from-rose-500/5" : "from-blue-500/5";
+    const bgGlow = trend === "positive" ? "from-green-500/5" : trend === "negative" ? "from-rose-500/5" : accent === "purple" ? "from-purple-500/5" : accent === "emerald" ? "from-emerald-500/5" : "from-blue-500/5";
 
     return (
         <div className={`bg-slate-900/60 backdrop-blur-sm border border-slate-800/80 rounded-2xl p-5 shadow-lg relative overflow-hidden bg-gradient-to-br ${bgGlow} to-transparent ring-1 ring-white/5`}>

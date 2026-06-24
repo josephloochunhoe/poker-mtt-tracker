@@ -89,6 +89,22 @@ export async function PUT(request: Request) {
         })
       );
       return NextResponse.json({ success: true });
+    } else if (action === "COMPLETE_CASH") {
+      const { cashOut, bullets, status } = rest;
+      await docClient.send(
+        new UpdateCommand({
+          TableName: TABLE_NAME,
+          Key: { TournamentId: id },
+          UpdateExpression: "SET #st = :status, cashOut = :cashOut, bullets = :bullets",
+          ExpressionAttributeNames: { "#st": "status" },
+          ExpressionAttributeValues: {
+            ":status": status,
+            ":cashOut": cashOut,
+            ":bullets": bullets,
+          },
+        })
+      );
+      return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
