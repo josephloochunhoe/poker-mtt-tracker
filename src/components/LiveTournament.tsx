@@ -50,7 +50,7 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
     const handleStartNew = async (type: string, speed: string, initialBuyIn: number) => {
         setIsSaving(true);
         const newTournament: Tournament = {
-            id: `wpt_${Date.now()}`,
+            id: `tournament_${Date.now()}`,
             date: new Date().toISOString().split("T")[0],
             type: type,
             speed: speed,
@@ -260,7 +260,7 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
                     <div>
                         <div className="flex items-center gap-3 mb-1">
                             <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.6)]"></span>
-                            <h2 className="text-2xl font-bold tracking-tight">WPT {tournament.type}</h2>
+                            <h2 className="text-2xl font-bold tracking-tight">{tournament.type}</h2>
                         </div>
                         <p className="text-slate-400 text-sm ml-5">{new Date(tournament.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</p>
                     </div>

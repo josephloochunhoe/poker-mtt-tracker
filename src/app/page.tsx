@@ -95,7 +95,7 @@ export default function Dashboard() {
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
                     <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white mb-2">
-                        WPT <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Tracker</span>
+                      Poker <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Tracker</span>
                     </h1>
                     <p className="text-slate-400">Your comprehensive poker performance dashboard.</p>
                 </div>
