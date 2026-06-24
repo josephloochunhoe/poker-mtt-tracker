@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       Item: {
         ...body,
         // Ensure your Partition Key is present
-        TournamentId: body.id || `wpt_${Date.now()}`,
+        TournamentId: body.id || `tournament_${Date.now()}`,
       },
     });
 

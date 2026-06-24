@@ -94,7 +94,7 @@ export default function HistoryTable({
                                         {new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-white font-medium">
-                                        WPT {t.type}
+                                        {t.type}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-center">
                                         <span className="bg-slate-800 px-2.5 py-1 rounded-md text-xs font-semibold border border-slate-700">{t.bullets.length}</span>
