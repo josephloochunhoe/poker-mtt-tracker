@@ -68,24 +68,37 @@ export async function PUT(request: Request) {
       );
       return NextResponse.json({ success: true });
     } else if (action === "COMPLETE") {
-      const { finishPosition, fieldSize, cashWon, bountiesWon, bullets, status } = rest;
+      const { finishPosition, fieldSize, cashWon, bountiesWon, bullets, status, flightStatus } = rest;
+      // Build the update dynamically so optional fields (finish position, field size,
+      // flight status) are only written when present — e.g. bagged/advanced Day 1 flights
+      // intentionally have no finish position or field size.
+      const setClauses = ["#st = :status", "cashWon = :cw", "bountiesWon = :bw", "bullets = :bullets"];
+      const names: Record<string, string> = { "#st": "status" };
+      const values: Record<string, unknown> = {
+        ":status": status,
+        ":cw": cashWon,
+        ":bw": bountiesWon,
+        ":bullets": bullets,
+      };
+      if (finishPosition !== undefined && finishPosition !== null) {
+        setClauses.push("finishPosition = :fp");
+        values[":fp"] = finishPosition;
+      }
+      if (fieldSize !== undefined && fieldSize !== null) {
+        setClauses.push("fieldSize = :fs");
+        values[":fs"] = fieldSize;
+      }
+      if (flightStatus !== undefined && flightStatus !== null) {
+        setClauses.push("flightStatus = :fls");
+        values[":fls"] = flightStatus;
+      }
       await docClient.send(
         new UpdateCommand({
           TableName: TABLE_NAME,
           Key: { TournamentId: id },
-          UpdateExpression:
-            "SET #st = :status, finishPosition = :fp, fieldSize = :fs, cashWon = :cw, bountiesWon = :bw, bullets = :bullets",
-          ExpressionAttributeNames: {
-            "#st": "status",
-          },
-          ExpressionAttributeValues: {
-            ":status": status,
-            ":fp": finishPosition,
-            ":fs": fieldSize,
-            ":cw": cashWon,
-            ":bw": bountiesWon,
-            ":bullets": bullets,
-          },
+          UpdateExpression: "SET " + setClauses.join(", "),
+          ExpressionAttributeNames: names,
+          ExpressionAttributeValues: values,
         })
       );
       return NextResponse.json({ success: true });
