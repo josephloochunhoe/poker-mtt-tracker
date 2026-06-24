@@ -17,7 +17,11 @@ export default function HistoryTable({
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const completedTournaments = tournaments
         .filter(t => t.status === "Completed")
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        .sort((a, b) => {
+            const aTime = a.bullets.length > 0 ? new Date(a.bullets[0].registeredAt).getTime() : new Date(a.date).getTime();
+            const bTime = b.bullets.length > 0 ? new Date(b.bullets[0].registeredAt).getTime() : new Date(b.date).getTime();
+            return bTime - aTime;
+        });
 
     const filtered = completedTournaments.filter(t =>
         typeFilter === "All" || t.type === typeFilter
