@@ -1,14 +1,12 @@
 "use client";
 import { useEffect, useState, useMemo } from "react";
-import { ArrowLeftRight, Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 
 interface RatesPayload {
   rates: Record<string, number>;
   base: string;
   cachedAt: string;
 }
-
-const POPULAR_CURRENCIES = ["USD", "EUR", "GBP", "JPY", "SGD", "MYR", "AUD", "CAD", "CHF", "HKD", "CNY", "KRW", "THB", "INR"];
 
 export default function CurrencyConverter() {
   const [payload, setPayload] = useState<RatesPayload | null>(null);
@@ -17,7 +15,7 @@ export default function CurrencyConverter() {
 
   const [amount, setAmount] = useState("100");
   const [from, setFrom] = useState("USD");
-  const [to, setTo] = useState("SGD");
+  const [to, setTo] = useState("MYR");
 
   useEffect(() => {
     fetch("/api/currency-rates")
@@ -31,11 +29,9 @@ export default function CurrencyConverter() {
   }, []);
 
   const currencies = useMemo(() => {
-    if (!payload) return POPULAR_CURRENCIES;
+    if (!payload) return [];
     const all = Object.keys(payload.rates);
-    const popular = POPULAR_CURRENCIES.filter(c => all.includes(c) || c === payload.base);
-    const others = all.filter(c => !popular.includes(c)).sort();
-    return [...popular, ...others];
+    return all.filter(c => c !== "MYR" && c !== payload.base).sort();
   }, [payload]);
 
   const result = useMemo(() => {
@@ -51,8 +47,6 @@ export default function CurrencyConverter() {
     const converted = to === base ? toBase : toBase * (rates[to] ?? 1);
     return converted.toFixed(2);
   }, [payload, amount, from, to]);
-
-  const swap = () => { setFrom(to); setTo(from); };
 
   const selectClass = "bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer";
 
@@ -99,21 +93,10 @@ export default function CurrencyConverter() {
             </select>
           </div>
 
-          {/* Swap */}
-          <button
-            onClick={swap}
-            className="p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors mb-0.5"
-            title="Swap currencies"
-          >
-            <ArrowLeftRight size={18} />
-          </button>
-
           {/* To */}
           <div className="space-y-1.5">
             <label className="text-xs uppercase tracking-wider text-slate-500 font-semibold">To</label>
-            <select value={to} onChange={e => setTo(e.target.value)} className={selectClass}>
-              {currencies.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <div className={selectClass}>MYR</div>
           </div>
         </div>
 
