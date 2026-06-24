@@ -12,6 +12,7 @@ export interface CashSession {
     status: "Active" | "Completed";
     bullets: Bullet[];
     cashOut?: number;
+    currency?: "USD" | "MYR";
 }
 
 interface LiveCashSessionProps {
@@ -29,8 +30,10 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
     const [newBuyIn, setNewBuyIn] = useState("0");
     const [newVenue, setNewVenue] = useState("");
     const [newStakes, setNewStakes] = useState("");
+    const [newCurrency, setNewCurrency] = useState<"USD" | "MYR">("MYR");
     const isLauncher = !initialSession;
     const totalInvested = session?.bullets.reduce((sum, b) => sum + b.cost, 0) || 0;
+    const sym = session?.currency === "USD" ? "$" : "RM ";
 
     const label = gameCategory === "HomeGame" ? "Home Game" : "Cash Game";
     const prefix = gameCategory === "HomeGame" ? "home_" : "cash_";
@@ -62,6 +65,7 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
             venue: newVenue.trim() || (gameCategory === "HomeGame" ? "Home Game" : "Casino"),
             stakes: newStakes.trim() || "-",
             status: "Active",
+            currency: newCurrency,
             bullets: [{
                 bulletNumber: 1,
                 registeredAt: new Date().toISOString(),
@@ -79,6 +83,7 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
             setNewBuyIn("0");
             setNewVenue("");
             setNewStakes("");
+            setNewCurrency("MYR");
             if (onCompleted) onCompleted();
         } catch (err) {
             console.error(err);
@@ -162,7 +167,21 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
 
                 <div className="space-y-4">
                     <div className="space-y-1.5">
-                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Buy-In (RM)</label>
+                        <div className="flex items-center justify-between">
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Buy-In</label>
+                            <div className="flex gap-1 bg-slate-800 rounded-lg p-0.5">
+                                {(["USD", "MYR"] as const).map(c => (
+                                    <button
+                                        key={c}
+                                        type="button"
+                                        onClick={() => setNewCurrency(c)}
+                                        className={`px-2.5 py-0.5 rounded-md text-xs font-semibold transition-all ${newCurrency === c ? `${accentColor === "purple" ? "bg-purple-600" : "bg-emerald-600"} text-white` : "text-slate-400 hover:text-white"}`}
+                                    >
+                                        {c}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                         <input
                             type="number"
                             className={`w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition-all text-white placeholder-slate-600 ${accentClasses.ring}`}
@@ -222,7 +241,7 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
                     </div>
                     <div className="text-right">
                         <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1">Total In</p>
-                        <p className="text-3xl font-black text-rose-400 tracking-tight">-RM {totalInvested}</p>
+                        <p className="text-3xl font-black text-rose-400 tracking-tight">-{sym}{totalInvested}</p>
                     </div>
                 </div>
 
@@ -238,7 +257,7 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
                                 </span>
                             </div>
                             <div className="flex items-center gap-3">
-                                <span className="text-slate-300 font-medium">RM {bullet.cost}</span>
+                                <span className="text-slate-300 font-medium">{sym}{bullet.cost}</span>
                                 {bullet.bustedAt ? (
                                     <span className="text-rose-400 bg-rose-400/10 px-2.5 py-1 rounded-md text-xs font-medium border border-rose-400/20">Topped Up</span>
                                 ) : (
@@ -282,7 +301,7 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
                         </div>
                         <form onSubmit={handleComplete} className="space-y-5">
                             <div className="space-y-1.5">
-                                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Cash Out Amount (RM)</label>
+                                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Cash Out Amount ({session?.currency || "MYR"})</label>
                                 <input
                                     type="number"
                                     step="0.01"
@@ -296,12 +315,12 @@ export default function LiveCashSession({ gameCategory, initialSession, onComple
                             <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
                                 <div className="flex justify-between text-sm mb-2">
                                     <span className="text-slate-400">Total Invested</span>
-                                    <span className="text-slate-300">RM {totalInvested.toFixed(2)}</span>
+                                    <span className="text-slate-300">{sym}{totalInvested.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-slate-400">Estimated P/L</span>
                                     <span className={parseFloat(cashOutValue || "0") - totalInvested >= 0 ? "text-green-400 font-bold" : "text-rose-400 font-bold"}>
-                                        {(parseFloat(cashOutValue || "0") - totalInvested) >= 0 ? "+" : ""}RM {(parseFloat(cashOutValue || "0") - totalInvested).toFixed(2)}
+                                        {(parseFloat(cashOutValue || "0") - totalInvested) >= 0 ? "+" : ""}{sym}{(parseFloat(cashOutValue || "0") - totalInvested).toFixed(2)}
                                     </span>
                                 </div>
                             </div>

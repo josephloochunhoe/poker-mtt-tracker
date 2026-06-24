@@ -132,10 +132,10 @@ export default function Dashboard() {
             {activeTab === "MTT" && (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <MetricCard title="Net Profit" value={`RM ${mttProfit.toFixed(2)}`} icon={<DollarSign size={20} className={mttProfit >= 0 ? "text-green-400" : "text-rose-400"} />} trend={mttProfit >= 0 ? "positive" : "negative"} />
+                        <MetricCard title="Net Profit" value={`$${mttProfit.toFixed(2)}`} icon={<DollarSign size={20} className={mttProfit >= 0 ? "text-green-400" : "text-rose-400"} />} trend={mttProfit >= 0 ? "positive" : "negative"} />
                         <MetricCard title="Overall ROI" value={`${mttROI.toFixed(1)}%`} icon={<TrendingUp size={20} className={mttROI >= 0 ? "text-green-400" : "text-rose-400"} />} trend={mttROI >= 0 ? "positive" : "negative"} />
-                        <MetricCard title="Avg Buy-In (ABI)" value={`RM ${mttABI.toFixed(2)}`} icon={<Target size={20} className="text-blue-400" />} trend="neutral" />
-                        <MetricCard title="Hourly Rate" value={`RM ${mttHourly.toFixed(2)}/hr`} icon={<Activity size={20} className={mttHourly >= 0 ? "text-green-400" : "text-rose-400"} />} trend={mttHourly >= 0 ? "positive" : "negative"} />
+                        <MetricCard title="Avg Buy-In (ABI)" value={`$${mttABI.toFixed(2)}`} icon={<Target size={20} className="text-blue-400" />} trend="neutral" />
+                        <MetricCard title="Hourly Rate" value={`$${mttHourly.toFixed(2)}/hr`} icon={<Activity size={20} className={mttHourly >= 0 ? "text-green-400" : "text-rose-400"} />} trend={mttHourly >= 0 ? "positive" : "negative"} />
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div className="lg:col-span-1 space-y-6">

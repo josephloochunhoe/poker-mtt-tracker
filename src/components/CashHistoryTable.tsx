@@ -79,6 +79,7 @@ export default function CashHistoryTable({
                             const profit = cashOut - invested;
                             const isProfit = profit > 0;
                             const isLoss = profit < 0;
+                            const sym = s.currency === "USD" ? "$" : "RM ";
                             const isConfirming = confirmDeleteId === s.id;
                             const isDeleting = deletingId === s.id;
 
@@ -109,16 +110,16 @@ export default function CashHistoryTable({
                                         {durationMs ? formatDuration(durationMs) : "-"}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-slate-300">
-                                        RM {invested.toFixed(2)}
+                                        {sym}{invested.toFixed(2)}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-slate-300">
-                                        RM {cashOut.toFixed(2)}
+                                        {sym}{cashOut.toFixed(2)}
                                     </td>
                                     <td className={`px-6 py-4 whitespace-nowrap text-right font-bold ${isProfit ? 'text-green-400' : isLoss ? 'text-rose-400' : 'text-slate-400'}`}>
-                                        {profit > 0 ? '+' : ''}RM {profit.toFixed(2)}
+                                        {profit > 0 ? '+' : ''}{sym}{profit.toFixed(2)}
                                     </td>
                                     <td className={`px-6 py-4 whitespace-nowrap text-right font-medium ${hourly === null ? 'text-slate-500' : hourly >= 0 ? 'text-green-400' : 'text-rose-400'}`}>
-                                        {hourly !== null ? `${hourly >= 0 ? '+' : ''}RM ${hourly.toFixed(2)}/hr` : '-'}
+                                        {hourly !== null ? `${hourly >= 0 ? '+' : ''}${sym}${hourly.toFixed(2)}/hr` : '-'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-center">
                                         {isConfirming ? (
