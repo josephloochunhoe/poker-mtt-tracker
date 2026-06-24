@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Search, Trash2, Loader2 } from "lucide-react";
 import { CashSession } from "./LiveCashSession";
+import { useMYRRate } from "@/hooks/useMYRRate";
 
 export default function CashHistoryTable({
     sessions,
@@ -13,6 +14,7 @@ export default function CashHistoryTable({
     const [searchTerm, setSearchTerm] = useState("");
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const myrRate = useMYRRate();
 
     const completed = sessions.filter(s => s.status === "Completed");
     const filtered = completed.filter(s =>
@@ -109,13 +111,25 @@ export default function CashHistoryTable({
                                     <td className="px-6 py-4 whitespace-nowrap text-center text-slate-400">
                                         {durationMs ? formatDuration(durationMs) : "-"}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-slate-300">${invested.toFixed(2)}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-slate-300">${cashOut.toFixed(2)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-slate-300">
+                                        <div>${invested.toFixed(2)}</div>
+                                        {myrRate && <div className="text-xs text-slate-500">(RM {(invested * myrRate).toFixed(2)})</div>}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-slate-300">
+                                        <div>${cashOut.toFixed(2)}</div>
+                                        {myrRate && <div className="text-xs text-slate-500">(RM {(cashOut * myrRate).toFixed(2)})</div>}
+                                    </td>
                                     <td className={`px-6 py-4 whitespace-nowrap text-right font-bold ${isProfit ? 'text-green-400' : isLoss ? 'text-rose-400' : 'text-slate-400'}`}>
-                                        {profit > 0 ? '+' : ''}${profit.toFixed(2)}
+                                        <div>{profit > 0 ? '+' : ''}${profit.toFixed(2)}</div>
+                                        {myrRate && <div className="text-xs text-slate-500 font-normal">(RM {(profit * myrRate).toFixed(2)})</div>}
                                     </td>
                                     <td className={`px-6 py-4 whitespace-nowrap text-right font-medium ${hourly === null ? 'text-slate-500' : hourly >= 0 ? 'text-green-400' : 'text-rose-400'}`}>
-                                        {hourly !== null ? `${hourly >= 0 ? '+' : ''}$${hourly.toFixed(2)}/hr` : '-'}
+                                        {hourly !== null ? (
+                                            <>
+                                                <div>{hourly >= 0 ? '+' : ''}${hourly.toFixed(2)}/hr</div>
+                                                {myrRate && <div className="text-xs text-slate-500 font-normal">(RM {(hourly * myrRate).toFixed(2)}/hr)</div>}
+                                            </>
+                                        ) : '-'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-center">
                                         {isConfirming ? (
