@@ -20,6 +20,7 @@ export interface Tournament {
     fieldSize?: number;
     cashWon?: number;
     bountiesWon?: number;
+    currency?: "USD" | "MYR";
 }
 
 interface LiveTournamentProps {
@@ -42,11 +43,13 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
     const [newBuyIn, setNewBuyIn] = useState("0");
     const [newType, setNewType] = useState("Standard");
     const [newSpeed, setNewSpeed] = useState("Regular");
+    const [newCurrency, setNewCurrency] = useState<"USD" | "MYR">("USD");
     const totalInvested = tournament?.bullets.reduce((sum, bullet) => sum + bullet.cost, 0) || 0;
+    const sym = tournament?.currency === "MYR" ? "RM " : "$";
 
     const isLauncher = !initialTournament;
 
-    const handleStartNew = async (type: string, speed: string, initialBuyIn: number) => {
+    const handleStartNew = async (type: string, speed: string, initialBuyIn: number, currency: "USD" | "MYR") => {
         setIsSaving(true);
         const newTournament: Tournament = {
             id: `tournament_${Date.now()}`,
@@ -54,6 +57,7 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
             type: type,
             speed: speed,
             status: "Active",
+            currency,
             bullets: [
                 {
                     bulletNumber: 1,
@@ -74,6 +78,7 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
                 setNewBuyIn("0");
                 setNewType("Standard");
                 setNewSpeed("Regular");
+                setNewCurrency("USD");
                 if (onCompleted) onCompleted();
             } else {
                 setTournament(newTournament);
@@ -201,11 +206,25 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
 
                 <div className="space-y-4">
                     <div className="space-y-1.5">
-                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Buy-In (RM)</label>
+                        <div className="flex items-center justify-between">
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Buy-In</label>
+                            <div className="flex gap-1 bg-slate-800 rounded-lg p-0.5">
+                                {(["USD", "MYR"] as const).map(c => (
+                                    <button
+                                        key={c}
+                                        type="button"
+                                        onClick={() => setNewCurrency(c)}
+                                        className={`px-2.5 py-0.5 rounded-md text-xs font-semibold transition-all ${newCurrency === c ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"}`}
+                                    >
+                                        {c}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                         <input
                             type="number"
                             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-white placeholder-slate-600"
-                            placeholder="e.g. 110"
+                            placeholder={newCurrency === "USD" ? "e.g. 110" : "e.g. 500"}
                             value={newBuyIn}
                             onChange={(e) => setNewBuyIn(e.target.value)}
                         />
@@ -241,7 +260,7 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
                     </div>
 
                     <button
-                        onClick={() => handleStartNew(newType, newSpeed, parseFloat(newBuyIn) || 0)}
+                        onClick={() => handleStartNew(newType, newSpeed, parseFloat(newBuyIn) || 0, newCurrency)}
                         className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 rounded-xl transition-all hover:shadow-[0_0_20px_rgba(37,99,235,0.4)] flex justify-center items-center gap-2 mt-4 disabled:opacity-50"
                         disabled={isSaving || !newBuyIn}
                     >
@@ -265,7 +284,7 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
                     </div>
                     <div className="text-right">
                         <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1">Total Invested</p>
-                        <p className="text-3xl font-black text-rose-400 tracking-tight">-RM {totalInvested}</p>
+                        <p className="text-3xl font-black text-rose-400 tracking-tight">-{sym}{totalInvested}</p>
                     </div>
                 </div>
 
@@ -345,7 +364,7 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Cash Won (RM)</label>
+                                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Cash Won ({tournament?.currency || "USD"})</label>
                                     <input
                                         type="number"
                                         step="0.01"
@@ -356,7 +375,7 @@ export default function LiveTournament({ initialTournament, onCompleted }: LiveT
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Bounties (RM)</label>
+                                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Bounties ({tournament?.currency || "USD"})</label>
                                     <input
                                         type="number"
                                         step="0.01"

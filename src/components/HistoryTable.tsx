@@ -84,6 +84,7 @@ export default function HistoryTable({
                             const roi = totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
                             const isProfit = profit > 0;
                             const isLoss = profit < 0;
+                            const sym = t.currency === "MYR" ? "RM " : "$";
                             const isConfirming = confirmDeleteId === t.id;
                             const isDeleting = deletingId === t.id;
 
@@ -106,13 +107,13 @@ export default function HistoryTable({
                                         ) : '-'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-slate-300">
-                                        RM {totalInvested.toFixed(2)}
+                                        {sym}{totalInvested.toFixed(2)}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-slate-300">
-                                        RM {totalCashed.toFixed(2)}
+                                        {sym}{totalCashed.toFixed(2)}
                                     </td>
                                     <td className={`px-6 py-4 whitespace-nowrap text-right font-bold ${isProfit ? 'text-green-400' : isLoss ? 'text-rose-400' : 'text-slate-400'}`}>
-                                        {profit > 0 ? '+' : ''}RM {profit.toFixed(2)}
+                                        {profit > 0 ? '+' : ''}{sym}{profit.toFixed(2)}
                                     </td>
                                     <td className={`px-6 py-4 whitespace-nowrap text-right font-medium ${isProfit ? 'text-green-400' : isLoss ? 'text-rose-400' : 'text-slate-400'}`}>
                                         {roi > 0 ? '+' : ''}{roi.toFixed(1)}%
