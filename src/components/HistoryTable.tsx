@@ -1,7 +1,9 @@
 "use client";
 import { useState } from "react";
 import { Tournament } from "./LiveTournament";
-import { Search, Trash2, Loader2 } from "lucide-react";
+import { ChevronDown, Trash2, Loader2 } from "lucide-react";
+
+const TOURNAMENT_TYPES = ["All", "Standard", "PKO", "Mystery Bounty", "Satellite"];
 
 export default function HistoryTable({
     tournaments,
@@ -10,14 +12,15 @@ export default function HistoryTable({
     tournaments: Tournament[];
     onDelete?: () => void;
 }) {
-    const [searchTerm, setSearchTerm] = useState("");
+    const [typeFilter, setTypeFilter] = useState("All");
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
-    const completedTournaments = tournaments.filter(t => t.status === "Completed");
+    const completedTournaments = tournaments
+        .filter(t => t.status === "Completed")
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const filtered = completedTournaments.filter(t =>
-        t.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.id.includes(searchTerm)
+        typeFilter === "All" || t.type === typeFilter
     );
 
     const handleDelete = async (id: string) => {
@@ -43,15 +46,17 @@ export default function HistoryTable({
         <div className="bg-slate-900/60 backdrop-blur-sm border border-slate-800/80 rounded-2xl shadow-xl overflow-hidden ring-1 ring-white/5 mt-8">
             <div className="p-6 border-b border-slate-800/80 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <h3 className="text-xl font-bold tracking-tight text-white">Session History</h3>
-                <div className="relative w-full sm:w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-                    <input
-                        type="text"
-                        placeholder="Search type..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-white placeholder-slate-600"
-                    />
+                <div className="relative w-full sm:w-52">
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={16} />
+                    <select
+                        value={typeFilter}
+                        onChange={(e) => setTypeFilter(e.target.value)}
+                        className="w-full appearance-none bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-white"
+                    >
+                        {TOURNAMENT_TYPES.map(t => (
+                            <option key={t} value={t}>{t}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
@@ -61,6 +66,8 @@ export default function HistoryTable({
                         <tr>
                             <th className="px-6 py-4">Date</th>
                             <th className="px-6 py-4">Type</th>
+                            <th className="px-6 py-4 text-center">Start Time</th>
+                            <th className="px-6 py-4 text-center">Duration</th>
                             <th className="px-6 py-4 text-center">Bullets</th>
                             <th className="px-6 py-4 text-center">Pos</th>
                             <th className="px-6 py-4 text-right">Invested</th>
@@ -73,7 +80,7 @@ export default function HistoryTable({
                     <tbody className="divide-y divide-slate-800/50">
                         {filtered.length === 0 ? (
                             <tr>
-                                <td colSpan={9} className="px-6 py-12 text-center text-slate-500">
+                                <td colSpan={11} className="px-6 py-12 text-center text-slate-500">
                                     No completed sessions found. Play some tournaments!
                                 </td>
                             </tr>
@@ -85,6 +92,17 @@ export default function HistoryTable({
                             const isProfit = profit > 0;
                             const isLoss = profit < 0;
                             const sym = t.currency === "MYR" ? "RM " : "$";
+                            const firstBulletDate = t.bullets.length > 0 ? new Date(t.bullets[0].registeredAt) : null;
+                            const firstStart = firstBulletDate ? firstBulletDate.getTime() : null;
+                            const startTimeStr = firstBulletDate
+                                ? firstBulletDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })
+                                : '-';
+                            const lastBullet = t.bullets[t.bullets.length - 1];
+                            const lastEnd = lastBullet?.bustedAt ? new Date(lastBullet.bustedAt).getTime() : null;
+                            const durationMs = firstStart && lastEnd ? lastEnd - firstStart : null;
+                            const durationStr = durationMs != null
+                                ? `${Math.floor(durationMs / 3600000)}h ${Math.floor((durationMs % 3600000) / 60000)}m`
+                                : '-';
                             const isConfirming = confirmDeleteId === t.id;
                             const isDeleting = deletingId === t.id;
 
@@ -95,6 +113,12 @@ export default function HistoryTable({
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-white font-medium">
                                         {t.type}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-center text-slate-300">
+                                        {startTimeStr}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-center text-slate-300">
+                                        {durationStr}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-center">
                                         <span className="bg-slate-800 px-2.5 py-1 rounded-md text-xs font-semibold border border-slate-700">{t.bullets.length}</span>
