@@ -28,7 +28,8 @@ export interface Tournament {
     isPhased?: boolean;                // True if part of a multi-flight event
     phasedStage?: "Day 1" | "Day 2";  // Tracks which stage this document represents
     flightStatus?: "Playing" | "Busted" | "Advanced"; // For Day 1 flights
-    parentTournamentId?: string;       // If Day 2, links back to the qualifying Day 1 ID
+    parentTournamentId?: string;        // If Day 2, links back to the qualifying Day 1 ID
+    additionalParentIds?: string[];     // Extra Day 1 flights whose chips merged into this Day 2
 }
 
 /** Pre-fill payload used to launch a Day 2 Final from a qualifying Day 1 flight. */

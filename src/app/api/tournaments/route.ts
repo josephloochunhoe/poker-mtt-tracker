@@ -118,6 +118,23 @@ export async function PUT(request: Request) {
         })
       );
       return NextResponse.json({ success: true });
+    } else if (action === "LINK_FLIGHT") {
+      // Link an additional Day 1 flight into an existing Day 2 record.
+      // `id` is the Day 2's TournamentId; `day1Id` is the Day 1 flight to append.
+      const { day1Id } = rest;
+      await docClient.send(
+        new UpdateCommand({
+          TableName: TABLE_NAME,
+          Key: { TournamentId: id },
+          UpdateExpression:
+            "SET additionalParentIds = list_append(if_not_exists(additionalParentIds, :empty), :new)",
+          ExpressionAttributeValues: {
+            ":empty": [],
+            ":new": [day1Id],
+          },
+        })
+      );
+      return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
