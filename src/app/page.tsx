@@ -64,19 +64,20 @@ export default function Dashboard() {
     const mttABI = mttBullets > 0 ? mttInvested / mttBullets : 0;
     const mttHourly = mttHours > 0 ? mttProfit / mttHours : 0;
 
-    // Cash/Home metrics
+    // Cash/Home metrics — use interval merging to avoid double-counting overlapping sessions
     const cashMetrics = (sessions: CashSession[]) => {
         const completed = sessions.filter(s => s.status === "Completed");
-        let invested = 0, cashOut = 0, totalMs = 0, sessionCount = 0;
+        let invested = 0, cashOut = 0;
+        const intervals: { start: number; end: number }[] = [];
         completed.forEach(s => {
             const inv = s.bullets.reduce((sum, b) => sum + b.cost, 0);
             invested += inv;
             cashOut += s.cashOut || 0;
             const first = new Date(s.bullets[0].registeredAt).getTime();
             const last = s.bullets[s.bullets.length - 1];
-            if (last.bustedAt) { totalMs += new Date(last.bustedAt).getTime() - first; sessionCount++; }
+            if (last.bustedAt) intervals.push({ start: first, end: new Date(last.bustedAt).getTime() });
         });
-        const hours = totalMs / (1000 * 60 * 60);
+        const hours = calcMergedHours(intervals);
         const profit = cashOut - invested;
         return { profit, hours, hourly: hours > 0 ? profit / hours : 0, sessions: completed.length };
     };

@@ -15,8 +15,10 @@ export default function HistoryTable({
     onDelete?: () => void;
 }) {
     const [typeFilter, setTypeFilter] = useState("All");
+    const [page, setPage] = useState(1);
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const PAGE_SIZE = 10;
     const completedTournaments = tournaments
         .filter(t => t.status === "Completed")
         .sort((a, b) => {
@@ -28,6 +30,8 @@ export default function HistoryTable({
     const filtered = completedTournaments.filter(t =>
         typeFilter === "All" || t.type === typeFilter
     );
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     const handleDelete = async (id: string) => {
         setDeletingId(id);
@@ -56,7 +60,7 @@ export default function HistoryTable({
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={16} />
                     <select
                         value={typeFilter}
-                        onChange={(e) => setTypeFilter(e.target.value)}
+                        onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
                         className="w-full appearance-none bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-white"
                     >
                         {TOURNAMENT_TYPES.map(t => (
@@ -90,7 +94,7 @@ export default function HistoryTable({
                                     No completed sessions found. Play some tournaments!
                                 </td>
                             </tr>
-                        ) : filtered.map((t) => {
+                        ) : paginated.map((t) => {
                             // For a phased Day 2 entry, step up to the parent Day 1 so the
                             // buy-in paid on Day 1 is counted and bounty pools are merged.
                             const fin = getEventFinancials(t, tournaments);
@@ -203,6 +207,29 @@ export default function HistoryTable({
                     </tbody>
                 </table>
             </div>
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-4 border-t border-slate-800/80">
+                    <span className="text-xs text-slate-500">
+                        Page {page} of {totalPages} &nbsp;·&nbsp; {filtered.length} sessions
+                    </span>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Prev
+                        </button>
+                        <button
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            disabled={page === totalPages}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

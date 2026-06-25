@@ -12,13 +12,17 @@ export default function CashHistoryTable({
     onDelete?: () => void;
 }) {
     const [searchTerm, setSearchTerm] = useState("");
+    const [page, setPage] = useState(1);
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const PAGE_SIZE = 10;
     const completed = sessions.filter(s => s.status === "Completed");
     const filtered = completed.filter(s =>
         s.venue.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.stakes.toLowerCase().includes(searchTerm.toLowerCase())
     );
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     const handleDelete = async (id: string) => {
         setDeletingId(id);
@@ -46,7 +50,7 @@ export default function CashHistoryTable({
                         type="text"
                         placeholder="Search venue / stakes..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-white placeholder-slate-600"
                     />
                 </div>
@@ -74,7 +78,7 @@ export default function CashHistoryTable({
                                     No completed sessions yet. Get out there and play!
                                 </td>
                             </tr>
-                        ) : filtered.map((s) => {
+                        ) : paginated.map((s) => {
                             const invested = s.bullets.reduce((sum, b) => sum + b.cost, 0);
                             const cashOut = s.cashOut || 0;
                             const profit = cashOut - invested;
@@ -156,6 +160,29 @@ export default function CashHistoryTable({
                     </tbody>
                 </table>
             </div>
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-4 border-t border-slate-800/80">
+                    <span className="text-xs text-slate-500">
+                        Page {page} of {totalPages} &nbsp;·&nbsp; {filtered.length} sessions
+                    </span>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Prev
+                        </button>
+                        <button
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            disabled={page === totalPages}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
