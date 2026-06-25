@@ -4,7 +4,7 @@ import LiveTournament, { Tournament, Day2Prefill } from "@/components/LiveTourna
 import HistoryTable from "@/components/HistoryTable";
 import LiveCashSession, { CashSession } from "@/components/LiveCashSession";
 import CashHistoryTable from "@/components/CashHistoryTable";
-import { TrendingUp, DollarSign, Target, Activity, Loader2, Trophy, ArrowRight, Layers } from "lucide-react";
+import { Clock, DollarSign, Target, Activity, Loader2, Trophy, ArrowRight, Layers } from "lucide-react";
 import { defaultSessionName } from "@/lib/analytics";
 import { useMYRRate } from "@/hooks/useMYRRate";
 
@@ -189,9 +189,9 @@ export default function Dashboard() {
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <MetricCard title="Net Profit" value={`$${mttProfit.toFixed(2)}`} subValue={myrRate != null ? `(RM ${(mttProfit * myrRate).toFixed(2)})` : undefined} icon={<DollarSign size={20} className={mttProfit >= 0 ? "text-green-400" : "text-rose-400"} />} trend={mttProfit >= 0 ? "positive" : "negative"} />
-                        <MetricCard title="Overall ROI" value={`${mttROI.toFixed(1)}%`} icon={<TrendingUp size={20} className={mttROI >= 0 ? "text-green-400" : "text-rose-400"} />} trend={mttROI >= 0 ? "positive" : "negative"} />
                         <MetricCard title="Avg Buy-In (ABI)" value={`$${mttABI.toFixed(2)}`} subValue={myrRate != null ? `(RM ${(mttABI * myrRate).toFixed(2)})` : undefined} icon={<Target size={20} className="text-blue-400" />} trend="neutral" />
                         <MetricCard title="Hourly Rate" value={`$${mttHourly.toFixed(2)}/hr`} subValue={myrRate != null ? `(RM ${(mttHourly * myrRate).toFixed(2)}/hr)` : undefined} icon={<Activity size={20} className={mttHourly >= 0 ? "text-green-400" : "text-rose-400"} />} trend={mttHourly >= 0 ? "positive" : "negative"} />
+                        <MetricCard title="Hours Played" value={`${mttHours.toFixed(1)}h`} icon={<Clock size={20} className="text-blue-400" />} trend="neutral" />
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div className="lg:col-span-1 space-y-6">
@@ -276,9 +276,10 @@ export default function Dashboard() {
             {/* Home Games Tab */}
             {activeTab === "HomeGame" && (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <MetricCard title="Net Profit" value={`RM ${homeMetrics.profit.toFixed(2)}`} icon={<DollarSign size={20} className={homeMetrics.profit >= 0 ? "text-green-400" : "text-rose-400"} />} trend={homeMetrics.profit >= 0 ? "positive" : "negative"} accent="purple" />
                         <MetricCard title="Hourly Rate" value={`RM ${homeMetrics.hourly.toFixed(2)}/hr`} icon={<Activity size={20} className={homeMetrics.hourly >= 0 ? "text-green-400" : "text-rose-400"} />} trend={homeMetrics.hourly >= 0 ? "positive" : "negative"} accent="purple" />
+                        <MetricCard title="Hours Played" value={`${homeMetrics.hours.toFixed(1)}h`} icon={<Clock size={20} className="text-purple-400" />} trend="neutral" accent="purple" />
                         <MetricCard title="Sessions Played" value={`${homeMetrics.sessions}`} icon={<Target size={20} className="text-purple-400" />} trend="neutral" accent="purple" />
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -314,9 +315,10 @@ export default function Dashboard() {
             {/* Cash Games Tab */}
             {activeTab === "CashGame" && (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <MetricCard title="Net Profit" value={`RM ${cashMetricsData.profit.toFixed(2)}`} icon={<DollarSign size={20} className={cashMetricsData.profit >= 0 ? "text-green-400" : "text-rose-400"} />} trend={cashMetricsData.profit >= 0 ? "positive" : "negative"} accent="emerald" />
                         <MetricCard title="Hourly Rate" value={`RM ${cashMetricsData.hourly.toFixed(2)}/hr`} icon={<Activity size={20} className={cashMetricsData.hourly >= 0 ? "text-green-400" : "text-rose-400"} />} trend={cashMetricsData.hourly >= 0 ? "positive" : "negative"} accent="emerald" />
+                        <MetricCard title="Hours Played" value={`${cashMetricsData.hours.toFixed(1)}h`} icon={<Clock size={20} className="text-emerald-400" />} trend="neutral" accent="emerald" />
                         <MetricCard title="Sessions Played" value={`${cashMetricsData.sessions}`} icon={<Target size={20} className="text-emerald-400" />} trend="neutral" accent="emerald" />
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
