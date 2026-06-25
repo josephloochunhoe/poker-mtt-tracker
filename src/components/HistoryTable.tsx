@@ -2,8 +2,10 @@
 import { useState } from "react";
 import { Tournament } from "./LiveTournament";
 import { getEventFinancials } from "@/lib/analytics";
-import { ChevronDown, Trash2, Loader2, Link2, Briefcase } from "lucide-react";
+import { ChevronDown, Trash2, Loader2, Link2, Briefcase, Sparkles } from "lucide-react";
 import { formatDateFromISO, formatTimeFromISO } from "@/lib/time";
+import SessionDetailModal from "./SessionDetailModal";
+import AIReviewModal from "./AIReviewModal";
 
 const TOURNAMENT_TYPES = ["All", "Standard", "PKO", "Mystery Bounty", "Satellite"];
 
@@ -18,6 +20,9 @@ export default function HistoryTable({
     const [page, setPage] = useState(1);
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [detailId, setDetailId] = useState<string | null>(null);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [showAIReview, setShowAIReview] = useState(false);
     const PAGE_SIZE = 10;
     const completedTournaments = tournaments
         .filter(t => t.status === "Completed")
@@ -32,6 +37,28 @@ export default function HistoryTable({
     );
     const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+    const selectedTournaments = completedTournaments.filter(t => selectedIds.has(t.id));
+    const detailTournament = detailId ? completedTournaments.find(t => t.id === detailId) : null;
+    const allFilteredSelected = filtered.length > 0 && filtered.every(t => selectedIds.has(t.id));
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const toggleSelectAll = () => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (allFilteredSelected) filtered.forEach(t => next.delete(t.id));
+            else filtered.forEach(t => next.add(t.id));
+            return next;
+        });
+    };
 
     const handleDelete = async (id: string) => {
         setDeletingId(id);
@@ -56,17 +83,28 @@ export default function HistoryTable({
         <div className="bg-slate-900/60 backdrop-blur-sm border border-slate-800/80 rounded-2xl shadow-xl overflow-hidden ring-1 ring-white/5 mt-8">
             <div className="p-6 border-b border-slate-800/80 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <h3 className="text-xl font-bold tracking-tight text-white">Session History</h3>
-                <div className="relative w-full sm:w-52">
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={16} />
-                    <select
-                        value={typeFilter}
-                        onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-                        className="w-full appearance-none bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-white"
+                <div className="flex w-full sm:w-auto items-center gap-3">
+                    <div className="relative w-full sm:w-52">
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={16} />
+                        <select
+                            value={typeFilter}
+                            onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+                            className="w-full appearance-none bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-white"
+                        >
+                            {TOURNAMENT_TYPES.map(t => (
+                                <option key={t} value={t}>{t}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <button
+                        onClick={() => setShowAIReview(true)}
+                        disabled={selectedIds.size === 0}
+                        title={selectedIds.size === 0 ? "Select sessions to review" : `Generate an AI review of ${selectedIds.size} session(s)`}
+                        className="shrink-0 flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:shadow-[0_0_15px_rgba(99,102,241,0.4)]"
                     >
-                        {TOURNAMENT_TYPES.map(t => (
-                            <option key={t} value={t}>{t}</option>
-                        ))}
-                    </select>
+                        <Sparkles size={15} />
+                        <span className="whitespace-nowrap">AI Review{selectedIds.size > 0 ? ` · ${selectedIds.size}` : ""}</span>
+                    </button>
                 </div>
             </div>
 
@@ -74,6 +112,15 @@ export default function HistoryTable({
                 <table className="w-full text-left text-sm text-slate-400">
                     <thead className="bg-slate-950/50 text-xs uppercase text-slate-500 font-semibold tracking-wider">
                         <tr>
+                            <th className="pl-6 pr-2 py-4">
+                                <input
+                                    type="checkbox"
+                                    checked={allFilteredSelected}
+                                    onChange={toggleSelectAll}
+                                    title="Select all"
+                                    className="w-4 h-4 rounded accent-indigo-500 cursor-pointer align-middle"
+                                />
+                            </th>
                             <th className="px-6 py-4">Date</th>
                             <th className="px-6 py-4">Type</th>
                             <th className="px-6 py-4 text-center">Start Time</th>
@@ -90,7 +137,7 @@ export default function HistoryTable({
                     <tbody className="divide-y divide-slate-800/50">
                         {filtered.length === 0 ? (
                             <tr>
-                                <td colSpan={11} className="px-6 py-12 text-center text-slate-500">
+                                <td colSpan={12} className="px-6 py-12 text-center text-slate-500">
                                     No completed sessions found. Play some tournaments!
                                 </td>
                             </tr>
@@ -119,8 +166,22 @@ export default function HistoryTable({
                             const isConfirming = confirmDeleteId === t.id;
                             const isDeleting = deletingId === t.id;
 
+                            const isSelected = selectedIds.has(t.id);
+
                             return (
-                                <tr key={t.id} className="hover:bg-slate-800/40 transition-colors group">
+                                <tr
+                                    key={t.id}
+                                    onClick={() => setDetailId(t.id)}
+                                    className={`hover:bg-slate-800/40 transition-colors group cursor-pointer ${isSelected ? "bg-indigo-500/5" : ""}`}
+                                >
+                                    <td className="pl-6 pr-2 py-4" onClick={(e) => e.stopPropagation()}>
+                                        <input
+                                            type="checkbox"
+                                            checked={isSelected}
+                                            onChange={() => toggleSelect(t.id)}
+                                            className="w-4 h-4 rounded accent-indigo-500 cursor-pointer align-middle"
+                                        />
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-slate-300">
                                         {formatDateFromISO(firstBulletISO ?? t.date)}
                                     </td>
@@ -172,7 +233,7 @@ export default function HistoryTable({
                                     <td className={`px-6 py-4 whitespace-nowrap text-right font-medium ${isProfit ? 'text-green-400' : isLoss ? 'text-rose-400' : 'text-slate-400'}`}>
                                         {roi > 0 ? '+' : ''}{roi.toFixed(1)}%
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                                    <td className="px-6 py-4 whitespace-nowrap text-center" onClick={(e) => e.stopPropagation()}>
                                         {isConfirming ? (
                                             <div className="flex items-center justify-center gap-2">
                                                 <button
@@ -229,6 +290,23 @@ export default function HistoryTable({
                         </button>
                     </div>
                 </div>
+            )}
+
+            {detailTournament && (
+                <SessionDetailModal
+                    tournament={detailTournament}
+                    allTournaments={tournaments}
+                    onClose={() => setDetailId(null)}
+                    onUpdated={() => { if (onDelete) onDelete(); }}
+                />
+            )}
+
+            {showAIReview && (
+                <AIReviewModal
+                    sessions={selectedTournaments}
+                    allTournaments={tournaments}
+                    onClose={() => setShowAIReview(false)}
+                />
             )}
         </div>
     );
