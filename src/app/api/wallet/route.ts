@@ -22,18 +22,18 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const id = `wallet_${Date.now()}`;
-    await docClient.send(new PutCommand({
-      TableName: TABLE_NAME,
-      Item: {
-        TournamentId: id,
-        id,
-        recordType: "wallet",
-        user_id: "default",
-        amount: body.amount,
-        type: body.type,
-        created_at: body.created_at,
-      },
-    }));
+    const item: Record<string, unknown> = {
+      TournamentId: id,
+      id,
+      recordType: "wallet",
+      user_id: "default",
+      amount: body.amount,
+      type: body.type,
+      created_at: body.created_at,
+    };
+    if (body.currency) item.currency = body.currency;
+    if (body.originalAmount != null) item.originalAmount = body.originalAmount;
+    await docClient.send(new PutCommand({ TableName: TABLE_NAME, Item: item }));
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

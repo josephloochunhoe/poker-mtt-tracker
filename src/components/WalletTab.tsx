@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { ArrowDownCircle, ArrowUpCircle, DollarSign, X, Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowDownCircle, ArrowUpCircle, DollarSign, X, Trash2, Loader2 } from "lucide-react";
 import { nowUTC8 } from "@/lib/time";
 import { formatDateFromISO, formatTimeFromISO } from "@/lib/time";
 
@@ -11,6 +11,8 @@ export interface ExternalTransaction {
   type: "deposit" | "withdrawal";
   created_at: string;
   recordType: "wallet";
+  currency?: "MYR" | "USD";
+  originalAmount?: number;
 }
 
 interface Props {
@@ -19,12 +21,27 @@ interface Props {
 }
 
 type ModalType = "deposit" | "withdrawal" | null;
+type Currency = "MYR" | "USD";
 
 export default function WalletTab({ transactions, onRefresh }: Props) {
   const [modal, setModal] = useState<ModalType>(null);
   const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState<Currency>("MYR");
+  const [myrRate, setMyrRate] = useState<number | null>(null);
+  const [rateLoading, setRateLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (currency === "USD" && myrRate === null && !rateLoading) {
+      setRateLoading(true);
+      fetch("/api/currency-rates")
+        .then(r => r.json())
+        .then(data => setMyrRate(data?.rates?.MYR ?? null))
+        .catch(() => setMyrRate(null))
+        .finally(() => setRateLoading(false));
+    }
+  }, [currency, myrRate, rateLoading]);
 
   const totalDeposits = transactions
     .filter(t => t.type === "deposit")
@@ -34,21 +51,35 @@ export default function WalletTab({ transactions, onRefresh }: Props) {
     .reduce((sum, t) => sum + t.amount, 0);
   const netInvestment = totalDeposits - totalWithdrawals;
 
+  const parsedAmount = parseFloat(amount);
+  const myrEquivalent =
+    currency === "USD" && myrRate !== null && !isNaN(parsedAmount)
+      ? parsedAmount * myrRate
+      : null;
+
   const openModal = (type: ModalType) => {
     setAmount("");
+    setCurrency("MYR");
     setModal(type);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = parseFloat(amount);
-    if (isNaN(parsed) || parsed <= 0) return;
+    if (isNaN(parsedAmount) || parsedAmount <= 0) return;
+    if (currency === "USD" && myrRate === null) return;
     setSubmitting(true);
     try {
+      const myrAmount = currency === "USD" ? parsedAmount * myrRate! : parsedAmount;
       await fetch("/api/wallet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: parsed, type: modal, created_at: nowUTC8() }),
+        body: JSON.stringify({
+          amount: myrAmount,
+          type: modal,
+          created_at: nowUTC8(),
+          currency,
+          originalAmount: parsedAmount,
+        }),
       });
       setModal(null);
       onRefresh();
@@ -142,7 +173,14 @@ export default function WalletTab({ transactions, onRefresh }: Props) {
                     <td className={`px-5 py-3.5 text-right font-semibold tabular-nums ${
                       tx.type === "deposit" ? "text-emerald-400" : "text-rose-400"
                     }`}>
-                      {tx.type === "deposit" ? "+" : "-"}RM {tx.amount.toFixed(2)}
+                      {tx.currency === "USD" && tx.originalAmount != null ? (
+                        <div>
+                          <div>{tx.type === "deposit" ? "+" : "-"}${tx.originalAmount.toFixed(2)}</div>
+                          <div className="text-xs text-slate-500 font-normal">≈ RM {tx.amount.toFixed(2)}</div>
+                        </div>
+                      ) : (
+                        <>{tx.type === "deposit" ? "+" : "-"}RM {tx.amount.toFixed(2)}</>
+                      )}
                     </td>
                     <td className="px-3 py-3.5 text-right">
                       {confirmDelete === tx.id ? (
@@ -189,24 +227,64 @@ export default function WalletTab({ transactions, onRefresh }: Props) {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Currency toggle */}
               <div>
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Amount (RM)
+                  Currency
                 </label>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={e => setAmount(e.target.value)}
-                  autoFocus
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 text-lg font-semibold"
-                />
+                <div className="flex gap-2">
+                  {(["MYR", "USD"] as Currency[]).map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setCurrency(c)}
+                      className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all border ${
+                        currency === c
+                          ? "bg-amber-600 border-amber-500 text-white"
+                          : "bg-slate-800 border-slate-700 text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      {c === "MYR" ? "RM (MYR)" : "$ (USD)"}
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Amount ({currency})
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-lg">
+                    {currency === "MYR" ? "RM" : "$"}
+                  </span>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={amount}
+                    onChange={e => setAmount(e.target.value)}
+                    autoFocus
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-12 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 text-lg font-semibold"
+                  />
+                </div>
+                {currency === "USD" && (
+                  <div className="mt-2 text-xs text-slate-400 min-h-[1.25rem]">
+                    {rateLoading ? (
+                      <span className="flex items-center gap-1"><Loader2 size={11} className="animate-spin" /> Fetching rate…</span>
+                    ) : myrEquivalent !== null ? (
+                      <span>≈ <span className="text-amber-400 font-semibold">RM {myrEquivalent.toFixed(2)}</span> at rate {myrRate?.toFixed(4)}</span>
+                    ) : myrRate === null && !rateLoading ? (
+                      <span className="text-rose-400">Could not fetch exchange rate</span>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+
               <button
                 type="submit"
-                disabled={submitting || !amount || parseFloat(amount) <= 0}
+                disabled={submitting || !amount || parsedAmount <= 0 || (currency === "USD" && myrRate === null)}
                 className={`w-full font-semibold rounded-xl py-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                   modal === "deposit"
                     ? "bg-emerald-600 hover:bg-emerald-500 text-white"
