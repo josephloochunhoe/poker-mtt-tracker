@@ -6,6 +6,7 @@ import LiveCashSession, { CashSession } from "@/components/LiveCashSession";
 import CashHistoryTable from "@/components/CashHistoryTable";
 import { TrendingUp, DollarSign, Target, Activity, Loader2, Trophy, ArrowRight, Layers } from "lucide-react";
 import { defaultSessionName } from "@/lib/analytics";
+import { useMYRRate } from "@/hooks/useMYRRate";
 
 type Tab = "MTT" | "HomeGame" | "CashGame";
 
@@ -75,8 +76,13 @@ export default function Dashboard() {
     const homeMetrics = cashMetrics(homeGames);
     const cashMetricsData = cashMetrics(cashGames);
 
-    // Overall net profit (all game types combined)
-    const overallProfit = mttProfit + homeMetrics.profit + cashMetricsData.profit;
+    const myrRate = useMYRRate();
+
+    // Overall net profit (all game types combined, MTT converted USD→MYR)
+    const mttProfitMYR = myrRate != null ? mttProfit * myrRate : null;
+    const overallProfit = mttProfitMYR != null
+        ? mttProfitMYR + homeMetrics.profit + cashMetricsData.profit
+        : null;
 
     const activeTournaments = tournaments.filter(t => t.status === "Active");
     const activeHomeGames = homeGames.filter(s => s.status === "Active");
@@ -143,9 +149,15 @@ export default function Dashboard() {
                 </div>
                 <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl px-5 py-3 text-right">
                     <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-0.5">Overall Net Profit</p>
-                    <p className={`text-2xl font-black tracking-tight ${overallProfit >= 0 ? "text-green-400" : "text-rose-400"}`}>
-                        {overallProfit >= 0 ? "+" : ""}RM {overallProfit.toFixed(2)}
-                    </p>
+                    {overallProfit != null ? (
+                        <p className={`text-2xl font-black tracking-tight ${overallProfit >= 0 ? "text-green-400" : "text-rose-400"}`}>
+                            {overallProfit >= 0 ? "+" : ""}RM {overallProfit.toFixed(2)}
+                        </p>
+                    ) : (
+                        <p className="text-2xl font-black tracking-tight text-slate-500 flex items-center justify-end gap-2">
+                            <Loader2 size={18} className="animate-spin" /> RM —
+                        </p>
+                    )}
                 </div>
             </div>
 
@@ -176,10 +188,10 @@ export default function Dashboard() {
             {activeTab === "MTT" && (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <MetricCard title="Net Profit" value={`$${mttProfit.toFixed(2)}`} icon={<DollarSign size={20} className={mttProfit >= 0 ? "text-green-400" : "text-rose-400"} />} trend={mttProfit >= 0 ? "positive" : "negative"} />
+                        <MetricCard title="Net Profit" value={`$${mttProfit.toFixed(2)}`} subValue={myrRate != null ? `(RM ${(mttProfit * myrRate).toFixed(2)})` : undefined} icon={<DollarSign size={20} className={mttProfit >= 0 ? "text-green-400" : "text-rose-400"} />} trend={mttProfit >= 0 ? "positive" : "negative"} />
                         <MetricCard title="Overall ROI" value={`${mttROI.toFixed(1)}%`} icon={<TrendingUp size={20} className={mttROI >= 0 ? "text-green-400" : "text-rose-400"} />} trend={mttROI >= 0 ? "positive" : "negative"} />
-                        <MetricCard title="Avg Buy-In (ABI)" value={`$${mttABI.toFixed(2)}`} icon={<Target size={20} className="text-blue-400" />} trend="neutral" />
-                        <MetricCard title="Hourly Rate" value={`$${mttHourly.toFixed(2)}/hr`} icon={<Activity size={20} className={mttHourly >= 0 ? "text-green-400" : "text-rose-400"} />} trend={mttHourly >= 0 ? "positive" : "negative"} />
+                        <MetricCard title="Avg Buy-In (ABI)" value={`$${mttABI.toFixed(2)}`} subValue={myrRate != null ? `(RM ${(mttABI * myrRate).toFixed(2)})` : undefined} icon={<Target size={20} className="text-blue-400" />} trend="neutral" />
+                        <MetricCard title="Hourly Rate" value={`$${mttHourly.toFixed(2)}/hr`} subValue={myrRate != null ? `(RM ${(mttHourly * myrRate).toFixed(2)}/hr)` : undefined} icon={<Activity size={20} className={mttHourly >= 0 ? "text-green-400" : "text-rose-400"} />} trend={mttHourly >= 0 ? "positive" : "negative"} />
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div className="lg:col-span-1 space-y-6">
