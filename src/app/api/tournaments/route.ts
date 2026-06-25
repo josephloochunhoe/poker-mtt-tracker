@@ -6,9 +6,9 @@ export async function GET() {
   try {
     const data = await docClient.send(new ScanCommand({ TableName: TABLE_NAME }));
     // Sort by date descending
-    const tournaments = (data.Items || []).sort((a, b) => {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    });
+    const tournaments = (data.Items || [])
+      .filter(item => item.recordType !== "wallet")
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     return NextResponse.json({ tournaments });
   } catch (error) {
     console.error("GET Error:", error);
