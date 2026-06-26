@@ -68,9 +68,9 @@ export async function PUT(request: Request) {
       );
       return NextResponse.json({ success: true });
     } else if (action === "COMPLETE") {
-      const { finishPosition, fieldSize, cashWon, bountiesWon, bullets, status, flightStatus } = rest;
+      const { finishPosition, fieldSize, cashWon, bountiesWon, bullets, status, flightStatus, review } = rest;
       // Build the update dynamically so optional fields (finish position, field size,
-      // flight status) are only written when present — e.g. bagged/advanced Day 1 flights
+      // flight status, review) are only written when present — e.g. bagged/advanced Day 1 flights
       // intentionally have no finish position or field size.
       const setClauses = ["#st = :status", "cashWon = :cw", "bountiesWon = :bw", "bullets = :bullets"];
       const names: Record<string, string> = { "#st": "status" };
@@ -91,6 +91,10 @@ export async function PUT(request: Request) {
       if (flightStatus !== undefined && flightStatus !== null) {
         setClauses.push("flightStatus = :fls");
         values[":fls"] = flightStatus;
+      }
+      if (review !== undefined && review !== null) {
+        setClauses.push("review = :review");
+        values[":review"] = review;
       }
       await docClient.send(
         new UpdateCommand({
@@ -132,6 +136,17 @@ export async function PUT(request: Request) {
             ":empty": [],
             ":new": [day1Id],
           },
+        })
+      );
+      return NextResponse.json({ success: true });
+    } else if (action === "SET_REVIEW") {
+      const { review } = rest;
+      await docClient.send(
+        new UpdateCommand({
+          TableName: TABLE_NAME,
+          Key: { TournamentId: id },
+          UpdateExpression: "SET review = :review",
+          ExpressionAttributeValues: { ":review": review ?? "" },
         })
       );
       return NextResponse.json({ success: true });

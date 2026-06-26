@@ -30,6 +30,7 @@ export interface Tournament {
     flightStatus?: "Playing" | "Busted" | "Advanced"; // For Day 1 flights
     parentTournamentId?: string;        // If Day 2, links back to the qualifying Day 1 ID
     additionalParentIds?: string[];     // Extra Day 1 flights whose chips merged into this Day 2
+    review?: string;                    // Free-text session review / bust-out notes
 }
 
 /** Pre-fill payload used to launch a Day 2 Final from a qualifying Day 1 flight. */
@@ -61,6 +62,7 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
         fieldSize: "",
         cashWon: "",
         bountiesWon: "",
+        review: "",
     });
 
     // Form state for creating a new tournament (seeded from a Day 2 pre-fill when present)
@@ -203,6 +205,8 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
         const updatedBullets = [...tournament.bullets];
         updatedBullets[updatedBullets.length - 1].bustedAt = now;
 
+        const reviewText = formData.review.trim() || undefined;
+
         const completedTournament: Tournament = {
             ...tournament,
             status: "Completed",
@@ -212,6 +216,7 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
             cashWon: cashW,
             bountiesWon: bountiesW,
             ...(flightStatus ? { flightStatus } : {}),
+            ...(reviewText ? { review: reviewText } : {}),
         };
 
         // Optimistic
@@ -232,6 +237,7 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
                     bountiesWon: bountiesW,
                     bullets: updatedBullets,
                     flightStatus,
+                    review: reviewText,
                 }),
             });
             if (!res.ok) {
@@ -533,6 +539,16 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
                                         onChange={(e) => setFormData({ ...formData, bountiesWon: e.target.value })}
                                     />
                                 </div>
+                            </div>
+                            <div className="col-span-2 space-y-1.5">
+                                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">Session Review / Notes</label>
+                                <textarea
+                                    rows={3}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-white placeholder-slate-600 resize-none"
+                                    placeholder="What busted you? Key hands, mistakes, reads, anything to review later…"
+                                    value={formData.review}
+                                    onChange={(e) => setFormData({ ...formData, review: e.target.value })}
+                                />
                             </div>
                             <button
                                 type="submit"
