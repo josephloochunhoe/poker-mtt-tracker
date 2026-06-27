@@ -103,6 +103,25 @@ export default function SessionDetailModal({ tournament: initialTournament, allT
                         )}
                     </div>
 
+                    {/* Late registration insight */}
+                    {tournament.lateRegPercentage != null && (
+                        <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-xl px-4 py-3">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-400/70 mb-1">Late Registration</p>
+                            <p className="text-sm text-slate-300 leading-snug">
+                                You entered{" "}
+                                <span className="font-bold text-indigo-300">{tournament.lateRegPercentage}%</span>{" "}
+                                into the late registration window
+                                {tournament.lateRegMinutesRemaining != null && tournament.lateRegMinutesRemaining > 0 && (
+                                    <>, with{" "}
+                                        <span className="font-semibold text-slate-200">{tournament.lateRegMinutesRemaining} min</span>{" "}
+                                        remaining before lock
+                                    </>
+                                )}
+                                .
+                            </p>
+                        </div>
+                    )}
+
                     {/* Bullets breakdown */}
                     <div>
                         <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Bullets ({tournament.bullets.length})</p>
