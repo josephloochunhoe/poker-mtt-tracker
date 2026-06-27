@@ -27,6 +27,7 @@ interface SessionPayload {
     profit: string;
     roi: string;
     review: string;
+    registrationDepth?: string;
 }
 
 function formatSessions(sessions: SessionPayload[]): string {
@@ -35,7 +36,7 @@ function formatSessions(sessions: SessionPayload[]): string {
             const pos = s.finishPosition != null
                 ? `${s.finishPosition}${s.fieldSize != null ? ` / ${s.fieldSize}` : ""}`
                 : "N/A";
-            return [
+            const lines = [
                 `Session ${i + 1}: ${s.name}`,
                 `  Type: ${s.type} (${s.speed})`,
                 `  Date: ${s.date}`,
@@ -43,8 +44,10 @@ function formatSessions(sessions: SessionPayload[]): string {
                 `  Finish: ${pos}`,
                 `  Cash won: ${s.cashWon} | Bounties: ${s.bountiesWon}`,
                 `  Profit: ${s.profit} | ROI: ${s.roi}`,
+                ...(s.registrationDepth ? [`  Registration Depth: ${s.registrationDepth}`] : []),
                 `  Player's review: ${s.review}`,
-            ].join("\n");
+            ];
+            return lines.join("\n");
         })
         .join("\n\n");
 }

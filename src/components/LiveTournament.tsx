@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { PlusCircle, Flag, X, Loader2, Layers, Skull, Trophy, Briefcase } from "lucide-react";
+import { PlusCircle, Flag, X, Loader2, Layers, Skull, Trophy, Briefcase, Clock } from "lucide-react";
 import { useMYRRate } from "@/hooks/useMYRRate";
 import { defaultSessionName } from "@/lib/analytics";
 import { nowUTC8, todayUTC8, formatShortDateFromISO, formatShortTimeFromISO } from "@/lib/time";
@@ -31,6 +31,8 @@ export interface Tournament {
     parentTournamentId?: string;        // If Day 2, links back to the qualifying Day 1 ID
     additionalParentIds?: string[];     // Extra Day 1 flights whose chips merged into this Day 2
     review?: string;                    // Free-text session review / bust-out notes
+    lateRegMinutesRemaining?: number;   // Minutes left in late reg window when player joined
+    lateRegPercentage?: number;         // How deep into the late reg window the player joined (0–100)
 }
 
 /** Pre-fill payload used to launch a Day 2 Final from a qualifying Day 1 flight. */
@@ -73,6 +75,15 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
     const [newSessionName, setNewSessionName] = useState(prefill?.sessionName || "");
     const [sessionNameTouched, setSessionNameTouched] = useState(!!prefill);
     const [isPhasedDay1, setIsPhasedDay1] = useState(false);
+
+    // Registration timing inputs (all optional — only saved when all three are provided)
+    const [regStartTime, setRegStartTime] = useState("");
+    const [regEndTime, setRegEndTime] = useState("");
+    const [regJoinTime, setRegJoinTime] = useState(() => {
+        const now = new Date();
+        return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    });
+
     const myrRate = useMYRRate();
 
     // Resolved session name: smart default unless the user has typed their own.
@@ -83,6 +94,21 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
     const sym = tournament?.currency === "MYR" ? "RM " : "$";
 
     const isLauncher = !initialTournament;
+
+    const regTimingPreview = (() => {
+        if (!regStartTime || !regEndTime || !regJoinTime) return null;
+        const toMins = (hhmm: string) => { const [h, m] = hhmm.split(":").map(Number); return h * 60 + m; };
+        const startMins = toMins(regStartTime);
+        let endMins = toMins(regEndTime);
+        let joinMins = toMins(regJoinTime);
+        if (endMins < startMins) endMins += 24 * 60;
+        if (joinMins < startMins) joinMins += 24 * 60;
+        const totalWindow = endMins - startMins;
+        if (totalWindow <= 0) return null;
+        const minsRemaining = Math.max(0, endMins - joinMins);
+        const pct = Math.round((1 - minsRemaining / totalWindow) * 100);
+        return { minsRemaining, pct };
+    })();
 
     const handleStartNew = async (type: string, speed: string, initialBuyIn: number, currency: "USD" | "MYR") => {
         setIsSaving(true);
@@ -101,6 +127,10 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
             ...(phased ? { phasedStage: (isDay2 ? "Day 2" : "Day 1") as "Day 1" | "Day 2" } : {}),
             ...(isPhasedDay1 && !isDay2 ? { flightStatus: "Playing" as const } : {}),
             ...(isDay2 && prefill ? { parentTournamentId: prefill.parentTournamentId } : {}),
+            ...(regTimingPreview ? {
+                lateRegMinutesRemaining: regTimingPreview.minsRemaining,
+                lateRegPercentage: regTimingPreview.pct,
+            } : {}),
             bullets: [
                 {
                     bulletNumber: 1,
@@ -125,6 +155,10 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
                 setNewSessionName("");
                 setSessionNameTouched(false);
                 setIsPhasedDay1(false);
+                setRegStartTime("");
+                setRegEndTime("");
+                const now = new Date();
+                setRegJoinTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
                 if (onCancelPrefill) onCancelPrefill();
                 if (onCompleted) onCompleted();
             } else {
@@ -371,6 +405,52 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
                             </span>
                         </button>
                     )}
+
+                    {/* Registration Timing — optional; records how late the player joined */}
+                    <div className="bg-slate-950/60 border border-slate-800/60 rounded-xl p-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                            <Clock size={13} className="text-slate-500" />
+                            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Registration Timing</span>
+                            <span className="text-[10px] text-slate-600">optional</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                            <div className="space-y-1">
+                                <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">Start Time</label>
+                                <input
+                                    type="time"
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-white [color-scheme:dark]"
+                                    value={regStartTime}
+                                    onChange={(e) => setRegStartTime(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">Late Reg End</label>
+                                <input
+                                    type="time"
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-white [color-scheme:dark]"
+                                    value={regEndTime}
+                                    onChange={(e) => setRegEndTime(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">Join Time</label>
+                                <input
+                                    type="time"
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-white [color-scheme:dark]"
+                                    value={regJoinTime}
+                                    onChange={(e) => setRegJoinTime(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        {regTimingPreview && (
+                            <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg px-3 py-2 text-xs text-blue-300/80 flex items-center gap-2">
+                                <Clock size={11} className="shrink-0 text-blue-400" />
+                                <span>
+                                    Entering at <span className="font-bold text-white">{regTimingPreview.pct}%</span> of Late Reg (<span className="font-bold text-white">{regTimingPreview.minsRemaining}</span> mins remaining)
+                                </span>
+                            </div>
+                        )}
+                    </div>
 
                     <button
                         onClick={() => handleStartNew(newType, newSpeed, parseFloat(newBuyIn) || 0, newCurrency)}
