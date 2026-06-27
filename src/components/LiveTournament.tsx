@@ -79,6 +79,7 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
     // Registration timing inputs (all optional — only saved when all three are provided)
     const [regStartTime, setRegStartTime] = useState("");
     const [regEndTime, setRegEndTime] = useState("");
+    const [regEndNextDay, setRegEndNextDay] = useState(false);
     const [regJoinTime, setRegJoinTime] = useState(() => {
         const now = new Date();
         return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
@@ -99,9 +100,9 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
         if (!regStartTime || !regEndTime || !regJoinTime) return null;
         const toMins = (hhmm: string) => { const [h, m] = hhmm.split(":").map(Number); return h * 60 + m; };
         const startMins = toMins(regStartTime);
-        let endMins = toMins(regEndTime);
+        let endMins = toMins(regEndTime) + (regEndNextDay ? 24 * 60 : 0);
         let joinMins = toMins(regJoinTime);
-        if (endMins < startMins) endMins += 24 * 60;
+        // Join time: infer next day if it falls before start (user joined after midnight)
         if (joinMins < startMins) joinMins += 24 * 60;
         const totalWindow = endMins - startMins;
         if (totalWindow <= 0) return null;
@@ -431,6 +432,13 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
                                     value={regEndTime}
                                     onChange={(e) => setRegEndTime(e.target.value)}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setRegEndNextDay(v => !v)}
+                                    className={`text-[10px] font-semibold px-2 py-0.5 rounded transition-all ${regEndNextDay ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-500 hover:text-slate-300"}`}
+                                >
+                                    +1 day
+                                </button>
                             </div>
                             <div className="space-y-1">
                                 <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">Join Time</label>
