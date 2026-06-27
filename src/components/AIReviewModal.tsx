@@ -37,6 +37,9 @@ export default function AIReviewModal({ sessions, allTournaments, onClose }: Pro
                     profit: `${fin.profit >= 0 ? "+" : ""}${sym}${fin.profit.toFixed(2)}`,
                     roi: `${fin.roi >= 0 ? "+" : ""}${fin.roi.toFixed(1)}%`,
                     review: t.review ?? "(no review written)",
+                    registrationDepth: (t.lateRegPercentage != null && t.lateRegMinutesRemaining != null)
+                        ? `${t.lateRegPercentage}%, ${t.lateRegMinutesRemaining} minutes remaining before lock`
+                        : undefined,
                 };
             });
 
