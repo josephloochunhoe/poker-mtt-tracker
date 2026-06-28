@@ -35,6 +35,18 @@ export interface Tournament {
     lateRegPercentage?: number;         // How deep into the late reg window the player joined (0–100)
 }
 
+/** A sitting that groups the tournaments played in one session. */
+export interface Session {
+    id: string;
+    recordType: "session";
+    sessionNumber?: number;          // sequential 1,2,3… ; absent for the Archive
+    name?: string;                   // override label (e.g. "Archive")
+    status: "Active" | "Completed";
+    startedAt: string;               // ISO — shown as "28th June 2026 4:04PM"
+    endedAt?: string;
+    tournaments: Tournament[];       // embedded list
+}
+
 /** Pre-fill payload used to launch a Day 2 Final from a qualifying Day 1 flight. */
 export interface Day2Prefill {
     sessionName: string;
@@ -45,6 +57,8 @@ export interface Day2Prefill {
 }
 
 interface LiveTournamentProps {
+    /** The active session this tournament belongs to / will be added to. */
+    sessionId: string;
     initialTournament?: Tournament;
     onCompleted?: () => void;
     /** When provided, the launcher opens pre-filled to start a Day 2 Final. */
@@ -53,7 +67,7 @@ interface LiveTournamentProps {
     onCancelPrefill?: () => void;
 }
 
-export default function LiveTournament({ initialTournament, onCompleted, prefill, onCancelPrefill }: LiveTournamentProps) {
+export default function LiveTournament({ sessionId, initialTournament, onCompleted, prefill, onCancelPrefill }: LiveTournamentProps) {
     const [tournament, setTournament] = useState<Tournament | null>(initialTournament || null);
     const [isSaving, setIsSaving] = useState(false);
     const [showCompleteModal, setShowCompleteModal] = useState(false);
@@ -76,14 +90,10 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
     const [sessionNameTouched, setSessionNameTouched] = useState(!!prefill);
     const [isPhasedDay1, setIsPhasedDay1] = useState(false);
 
-    // Registration timing inputs (all optional — only saved when all three are provided)
+    // Registration timing inputs (optional — join time is implied by the launch moment).
     const [regStartTime, setRegStartTime] = useState("");
     const [regEndTime, setRegEndTime] = useState("");
     const [regEndNextDay, setRegEndNextDay] = useState(false);
-    const [regJoinTime, setRegJoinTime] = useState(() => {
-        const now = new Date();
-        return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-    });
 
     const myrRate = useMYRRate();
 
@@ -97,12 +107,18 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
     const isLauncher = !initialTournament;
 
     const regTimingPreview = (() => {
-        if (!regStartTime || !regEndTime || !regJoinTime) return null;
+        if (!regStartTime || !regEndTime) return null;
         const toMins = (hhmm: string) => { const [h, m] = hhmm.split(":").map(Number); return h * 60 + m; };
         const startMins = toMins(regStartTime);
-        let endMins = toMins(regEndTime) + (regEndNextDay ? 24 * 60 : 0);
-        let joinMins = toMins(regJoinTime);
-        // Join time: infer next day if it falls before start (user joined after midnight)
+        const endMins = toMins(regEndTime) + (regEndNextDay ? 24 * 60 : 0);
+        // Join time is the launch moment (now), in the app's UTC+8 clock.
+        const { hour, minute } = (() => {
+            const [, timePart = "00:00"] = nowUTC8().split("T");
+            const [h, m] = timePart.split(":").map(Number);
+            return { hour: h, minute: m };
+        })();
+        let joinMins = hour * 60 + minute;
+        // Infer next day if the launch time falls before reg start (joined after midnight).
         if (joinMins < startMins) joinMins += 24 * 60;
         const totalWindow = endMins - startMins;
         if (totalWindow <= 0) return null;
@@ -143,10 +159,10 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
         };
 
         try {
-            await fetch("/api/tournaments", {
-                method: "POST",
+            await fetch("/api/sessions", {
+                method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(newTournament),
+                body: JSON.stringify({ action: "ADD_TOURNAMENT", sessionId, tournament: newTournament }),
             });
             if (isLauncher) {
                 setNewBuyIn("0");
@@ -158,8 +174,6 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
                 setIsPhasedDay1(false);
                 setRegStartTime("");
                 setRegEndTime("");
-                const now = new Date();
-                setRegJoinTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
                 if (onCancelPrefill) onCancelPrefill();
                 if (onCompleted) onCompleted();
             } else {
@@ -198,12 +212,13 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
 
         // API Call
         try {
-            const res = await fetch("/api/tournaments", {
+            const res = await fetch("/api/sessions", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     action: "REBUY",
-                    id: tournament.id,
+                    sessionId,
+                    tournamentId: tournament.id,
                     bullets: updatedBullets,
                 }),
             });
@@ -259,12 +274,13 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
         setShowCompleteModal(false);
 
         try {
-            const res = await fetch("/api/tournaments", {
+            const res = await fetch("/api/sessions", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     action: "COMPLETE",
-                    id: tournament.id,
+                    sessionId,
+                    tournamentId: tournament.id,
                     status: "Completed",
                     finishPosition: finishPos,
                     fieldSize: fieldSz,
@@ -296,7 +312,7 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
                             {isDay2 ? <Trophy className="text-amber-400" size={22} /> : <PlusCircle className="text-blue-400" size={22} />}
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold tracking-tight">{isDay2 ? "Launch Day 2 Final" : "Start New Session"}</h3>
+                            <h3 className="text-xl font-bold tracking-tight">{isDay2 ? "Launch Day 2 Final" : "Add Tournament"}</h3>
                             <p className="text-slate-400 text-xs">{isDay2 ? "Pre-filled from your qualifying Day 1 flight" : "Configure your tournament details"}</p>
                         </div>
                     </div>
@@ -414,7 +430,7 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
                             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Registration Timing</span>
                             <span className="text-[10px] text-slate-600">optional</span>
                         </div>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 gap-2">
                             <div className="space-y-1">
                                 <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">Start Time</label>
                                 <input
@@ -440,16 +456,8 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
                                     +1 day
                                 </button>
                             </div>
-                            <div className="space-y-1">
-                                <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">Join Time</label>
-                                <input
-                                    type="time"
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-white [color-scheme:dark]"
-                                    value={regJoinTime}
-                                    onChange={(e) => setRegJoinTime(e.target.value)}
-                                />
-                            </div>
                         </div>
+                        <p className="text-[10px] text-slate-600">Join time is taken automatically from when you launch the tournament.</p>
                         {regTimingPreview && (
                             <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg px-3 py-2 text-xs text-blue-300/80 flex items-center gap-2">
                                 <Clock size={11} className="shrink-0 text-blue-400" />
@@ -547,7 +555,7 @@ export default function LiveTournament({ initialTournament, onCompleted, prefill
                 <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-6 z-20 transition-all">
                     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full shadow-2xl ring-1 ring-white/10 transform scale-100 animate-in fade-in zoom-in duration-200">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold tracking-tight">Complete Session</h3>
+                            <h3 className="text-xl font-bold tracking-tight">Complete Tournament</h3>
                             <button onClick={() => setShowCompleteModal(false)} className="text-slate-500 hover:text-white transition-colors bg-slate-800 hover:bg-slate-700 p-1.5 rounded-lg">
                                 <X size={18} />
                             </button>

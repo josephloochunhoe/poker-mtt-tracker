@@ -7,7 +7,7 @@ export async function GET() {
     const data = await docClient.send(new ScanCommand({ TableName: TABLE_NAME }));
     // Sort by date descending
     const tournaments = (data.Items || [])
-      .filter(item => item.recordType !== "wallet")
+      .filter(item => item.recordType !== "wallet" && item.recordType !== "session")
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     return NextResponse.json({ tournaments });
   } catch (error) {

@@ -7,12 +7,13 @@ import { formatDateFromISO, formatTimeFromISO } from "@/lib/time";
 
 interface Props {
     tournament: Tournament;
+    sessionId: string;
     allTournaments: Tournament[];
     onClose: () => void;
     onUpdated: () => void;
 }
 
-export default function SessionDetailModal({ tournament: initialTournament, allTournaments, onClose, onUpdated }: Props) {
+export default function SessionDetailModal({ tournament: initialTournament, sessionId, allTournaments, onClose, onUpdated }: Props) {
     const [tournament, setTournament] = useState(initialTournament);
     const [reviewText, setReviewText] = useState(tournament.review ?? "");
     const [isSaving, setIsSaving] = useState(false);
@@ -37,10 +38,10 @@ export default function SessionDetailModal({ tournament: initialTournament, allT
     const saveReview = async () => {
         setIsSaving(true);
         try {
-            await fetch("/api/tournaments", {
+            await fetch("/api/sessions", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "SET_REVIEW", id: tournament.id, review: reviewText }),
+                body: JSON.stringify({ action: "SET_REVIEW", sessionId, tournamentId: tournament.id, review: reviewText }),
             });
             setTournament(t => ({ ...t, review: reviewText }));
             setSaved(true);

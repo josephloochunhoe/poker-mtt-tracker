@@ -49,3 +49,25 @@ export function formatShortTimeFromISO(isoStr: string): string {
     const { hour, minute } = splitISO(isoStr);
     return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
+
+const MONTH_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+function ordinal(day: number): string {
+    const v = day % 100;
+    if (v >= 11 && v <= 13) return `${day}th`;
+    switch (day % 10) {
+        case 1: return `${day}st`;
+        case 2: return `${day}nd`;
+        case 3: return `${day}rd`;
+        default: return `${day}th`;
+    }
+}
+
+/** "28th June 2026 4:04PM" — session start label, parsed directly from the ISO string */
+export function formatSessionStart(isoStr: string): string {
+    const { year, month, day, hour, minute } = splitISO(isoStr);
+    const period = hour >= 12 ? "PM" : "AM";
+    const h = hour % 12 || 12;
+    const m = String(minute).padStart(2, "0");
+    return `${ordinal(day)} ${MONTH_FULL[month - 1]} ${year} ${h}:${m}${period}`;
+}

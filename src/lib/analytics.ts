@@ -57,3 +57,63 @@ export function defaultSessionName(type: string, speed: string): string {
         .filter(Boolean)
         .join(" ");
 }
+
+/**
+ * Merges overlapping bullet intervals so concurrently-played tournaments aren't
+ * double-counted, then returns the total wall-clock hours covered.
+ */
+export function calcMergedHours(intervals: { start: number; end: number }[]): number {
+    if (intervals.length === 0) return 0;
+    const sorted = [...intervals].sort((a, b) => a.start - b.start);
+    const merged = [{ ...sorted[0] }];
+    for (let i = 1; i < sorted.length; i++) {
+        const cur = sorted[i];
+        const last = merged[merged.length - 1];
+        if (cur.start <= last.end) last.end = Math.max(last.end, cur.end);
+        else merged.push({ ...cur });
+    }
+    return merged.reduce((sum, iv) => sum + (iv.end - iv.start), 0) / (1000 * 60 * 60);
+}
+
+export interface MttMetrics {
+    invested: number;
+    cashed: number;
+    profit: number;
+    roi: number;
+    abi: number;
+    hours: number;
+    hourly: number;
+    bullets: number;
+}
+
+/**
+ * Aggregate MTT metrics over a set of completed tournaments. Sums each tournament's own
+ * bullets/cash/bounties (NOT getEventFinancials) so linked Day 1/Day 2 entries are each
+ * counted exactly once — meaning the overall dashboard equals the sum of every session.
+ * Used for both the overall dashboard and per-session analytics so the numbers match.
+ */
+export function getMttMetrics(completed: Tournament[]): MttMetrics {
+    let invested = 0, cashed = 0, bullets = 0;
+    const intervals: { start: number; end: number }[] = [];
+    completed.forEach(t => {
+        t.bullets.forEach(b => {
+            invested += b.cost;
+            bullets++;
+            if (b.registeredAt && b.bustedAt)
+                intervals.push({ start: new Date(b.registeredAt).getTime(), end: new Date(b.bustedAt).getTime() });
+        });
+        cashed += (t.cashWon || 0) + (t.bountiesWon || 0);
+    });
+    const hours = calcMergedHours(intervals);
+    const profit = cashed - invested;
+    return {
+        invested,
+        cashed,
+        profit,
+        roi: invested > 0 ? (profit / invested) * 100 : 0,
+        abi: bullets > 0 ? invested / bullets : 0,
+        hours,
+        hourly: hours > 0 ? profit / hours : 0,
+        bullets,
+    };
+}
