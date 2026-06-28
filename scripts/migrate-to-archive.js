@@ -99,11 +99,10 @@ async function main() {
     process.exit(1);
   }
 
-  // 3. Identify standalone MTT tournaments
-  //    - no recordType (not "session" / "wallet")
-  //    - no gameCategory (not "HomeGame" / "CashGame")
+  // 3. Identify standalone MTT tournaments by their TournamentId prefix.
+  //    wallet_xxx, session_xxx, and CURRENCY_RATES_CACHE are all ignored.
   const mttItems = allItems.filter(
-    i => !i.recordType && !i.gameCategory
+    i => typeof i.TournamentId === "string" && i.TournamentId.startsWith("tournament_")
   );
 
   if (mttItems.length === 0) {
