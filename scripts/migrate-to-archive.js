@@ -13,6 +13,20 @@
  * the Amplify IAM role when run in production).
  */
 
+const fs = require("fs");
+const path = require("path");
+
+// Load .env.local from the project root (no dotenv dependency needed)
+const envPath = path.resolve(__dirname, "../.env.local");
+if (fs.existsSync(envPath)) {
+  fs.readFileSync(envPath, "utf8")
+    .split(/\r?\n/)
+    .forEach(line => {
+      const match = line.match(/^\s*([^#=\s][^=]*?)\s*=\s*(.*?)\s*$/);
+      if (match) process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, "");
+    });
+}
+
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, ScanCommand, PutCommand, BatchWriteCommand } = require("@aws-sdk/lib-dynamodb");
 
