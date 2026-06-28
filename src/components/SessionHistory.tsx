@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Tournament, Session } from "./LiveTournament";
 import { getEventFinancials, getMttMetrics } from "@/lib/analytics";
 import { ChevronDown, ChevronRight, Trash2, Loader2, Link2, Briefcase, Sparkles } from "lucide-react";
-import { formatTimeFromISO, formatSessionStart } from "@/lib/time";
+import { formatTimeFromISO, formatShortDateFromISO, formatSessionStart } from "@/lib/time";
 import SessionDetailModal from "./SessionDetailModal";
 import AIReviewModal from "./AIReviewModal";
 
@@ -133,7 +133,13 @@ export default function SessionHistory({
                         No completed sessions yet. Start a session and play some tournaments!
                     </div>
                 ) : paginated.map(session => {
-                    const visibleTournaments = session.tournaments.filter(matchesType);
+                    const visibleTournaments = session.tournaments
+                        .filter(matchesType)
+                        .sort((a, b) => {
+                            const aTime = a.bullets.length > 0 ? new Date(a.bullets[0].registeredAt).getTime() : 0;
+                            const bTime = b.bullets.length > 0 ? new Date(b.bullets[0].registeredAt).getTime() : 0;
+                            return bTime - aTime;
+                        });
                     const metrics = getMttMetrics(visibleTournaments);
                     const isOpen = expanded.has(session.id);
                     const selState = sessionSelectionState(session);
@@ -215,6 +221,7 @@ export default function SessionHistory({
                                                     const firstBulletISO = t.bullets.length > 0 ? t.bullets[0].registeredAt : null;
                                                     const firstStart = firstBulletISO ? new Date(firstBulletISO).getTime() : null;
                                                     const startTimeStr = firstBulletISO ? formatTimeFromISO(firstBulletISO) : "-";
+                                                    const startDateStr = firstBulletISO ? formatShortDateFromISO(firstBulletISO) : null;
                                                     const lastBullet = t.bullets[t.bullets.length - 1];
                                                     const lastEnd = lastBullet?.bustedAt ? new Date(lastBullet.bustedAt).getTime() : null;
                                                     const durationMs = firstStart && lastEnd ? lastEnd - firstStart : null;
@@ -254,7 +261,10 @@ export default function SessionHistory({
                                                                     )}
                                                                 </div>
                                                             </td>
-                                                            <td className="px-4 py-3 whitespace-nowrap text-center text-slate-300">{startTimeStr}</td>
+                                                            <td className="px-4 py-3 whitespace-nowrap text-center text-slate-300">
+                                                                {startDateStr && <div className="text-xs text-slate-500">{startDateStr}</div>}
+                                                                <div>{startTimeStr}</div>
+                                                            </td>
                                                             <td className="px-4 py-3 whitespace-nowrap text-center text-slate-300">{durationStr}</td>
                                                             <td className="px-4 py-3 whitespace-nowrap text-center">
                                                                 <span className="bg-slate-800 px-2.5 py-1 rounded-md text-xs font-semibold border border-slate-700">{t.bullets.length}</span>
