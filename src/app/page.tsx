@@ -173,7 +173,11 @@ export default function Dashboard() {
             parentTournamentId: day1.id,
         });
         setActiveTab("MTT");
-        if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+        if (typeof window !== "undefined") {
+            setTimeout(() => {
+                document.getElementById("tournament-launcher")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 50);
+        }
     };
 
     if (isLoading) {
@@ -365,7 +369,7 @@ export default function Dashboard() {
                                     )}
 
                                     {/* Add-tournament launcher (adds into the active session) */}
-                                    <div className="border-t border-slate-800/80 pt-6">
+                                    <div id="tournament-launcher" className="border-t border-slate-800/80 pt-6">
                                         <LiveTournament
                                             key={day2Prefill ? `launcher-day2-${day2Prefill.parentTournamentId}` : "launcher"}
                                             sessionId={activeSession.id}
