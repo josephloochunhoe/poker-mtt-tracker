@@ -293,9 +293,13 @@ export default function Dashboard() {
                                     </div>
 
                                     {/* Running tournaments */}
-                                    {activeTournaments.map(t => (
-                                        <LiveTournament key={t.id} sessionId={activeSession.id} initialTournament={t} onCompleted={fetchAll} />
-                                    ))}
+                                    {activeTournaments.length > 0 && (
+                                        <div className="overflow-y-auto max-h-[60vh] space-y-6 pr-1">
+                                            {activeTournaments.map(t => (
+                                                <LiveTournament key={t.id} sessionId={activeSession.id} initialTournament={t} onCompleted={fetchAll} />
+                                            ))}
+                                        </div>
+                                    )}
 
                                     {/* Completed-this-session summary */}
                                     {completedInSession.length > 0 && (
