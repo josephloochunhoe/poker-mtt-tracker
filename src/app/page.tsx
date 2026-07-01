@@ -109,8 +109,13 @@ export default function Dashboard() {
         ...mttTournaments.filter(t => t.parentTournamentId).map(t => t.parentTournamentId),
         ...mttTournaments.flatMap(t => t.additionalParentIds || []),
     ]);
+    // Day 1 flights whose Day 2 Final has already finished — the event is over, so hide the card.
+    const resolvedDay1ParentIds = new Set<string | undefined>([
+        ...mttTournaments.filter(t => t.status === "Completed" && t.parentTournamentId).map(t => t.parentTournamentId),
+        ...mttTournaments.filter(t => t.status === "Completed").flatMap(t => t.additionalParentIds || []),
+    ]);
     const advancedDay1s = mttTournaments.filter(
-        t => t.isPhased && t.phasedStage === "Day 1" && t.flightStatus === "Advanced"
+        t => t.isPhased && t.phasedStage === "Day 1" && t.flightStatus === "Advanced" && !resolvedDay1ParentIds.has(t.id)
     );
     const activeDay2s = activeTournaments.filter(t => t.isPhased && t.phasedStage === "Day 2");
 
